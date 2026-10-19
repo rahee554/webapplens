@@ -11,7 +11,6 @@ export function projectStatus(project) {
   const board = readBoard(project);
   const next = [];
   if (state.queue.length) next.push(`resume the crawl (${state.queue.length} URL(s) queued; stop reason: ${state.stop_reason || 'n/a'})`);
-  if (!fs.existsSync(project.p.techStack) || !JSON.parse(fs.readFileSync(project.p.techStack, 'utf8')).pages) { /* stack scan not run */ }
   if (m.unresolved_todos) next.push(`${m.unresolved_todos} documentation TODO(agent) marker(s) to resolve`);
   if (m.unexplored_nav.length) next.push(`${m.unexplored_nav.length} navigation target(s) not explored`);
   return {
