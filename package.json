@@ -45,5 +45,9 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/<your-username>/webapplens.git"
+  },
+  "author": {
+    "name": "Raheel Ahmad",
+    "url": "https://artflow.pk"
   }
 }

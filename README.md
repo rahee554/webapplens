@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="assets/logo.svg" alt="WebAppLens" width="560">
+<img src="assets/logo.png" alt="WebAppLens logo" width="560">
 
 ### A universal AI-agent skill that researches web applications — safely, with evidence.
 
@@ -11,8 +11,9 @@ Get back a map of every reachable page, real screenshots, form and control inven
 [![Node](https://img.shields.io/badge/node-%E2%89%A5%2022-3c873a.svg)](package.json)
 [![Playwright](https://img.shields.io/badge/browser-Playwright%20%2F%20Chromium-45ba4b.svg)](https://playwright.dev)
 [![Works with](https://img.shields.io/badge/works%20with-Claude%20Code%20%C2%B7%20Codex%20%C2%B7%20any%20agent-06b6d4.svg)](#-install)
-[![CI](https://github.com/%3Cyour-username%3E/webapplens/actions/workflows/ci.yml/badge.svg)](.github/workflows/ci.yml)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-ff69b4.svg)](CONTRIBUTING.md)
+
+Created by **Raheel Ahmad** &nbsp;·&nbsp; Powered by [**Artflow Studio**](https://artflow.pk) — Branding & IT Solutions
 
 [**Landing page**](index.html) · [**User guide**](docs/user-guide.md) · [**Contributing**](CONTRIBUTING.md) · [**Roadmap**](docs/roadmap.md)
 
@@ -223,4 +224,14 @@ WebAppLens is open source and built to be extended — new platform adapters, ro
 
 ## License
 
-[MIT](LICENSE) © WebAppLens contributors. Use it on applications you own or are authorized to test, or on public vendor demos.
+[MIT](LICENSE) © WebAppLens contributors.
+
+---
+
+<div align="center">
+
+Created by **Raheel Ahmad** · Powered by [**Artflow Studio**](https://artflow.pk)
+
+</div>
+
+ Use it on applications you own or are authorized to test, or on public vendor demos.
