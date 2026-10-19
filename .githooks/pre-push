@@ -1,0 +1,14 @@
+#!/bin/sh
+# Client-side guard: refuse force-pushes and deletion of main. Real protection must also be enabled
+# on GitHub (Settings > Branches / Rulesets) because local hooks can be bypassed with --no-verify.
+zero=0000000000000000000000000000000000000000
+while read -r local_ref local_sha remote_ref remote_sha; do
+  [ "$remote_ref" = "refs/heads/main" ] || continue
+  if [ "$local_sha" = "$zero" ]; then
+    echo "pre-push: refusing to delete main" >&2; exit 1
+  fi
+  if [ "$remote_sha" != "$zero" ] && ! git merge-base --is-ancestor "$remote_sha" "$local_sha" 2>/dev/null; then
+    echo "pre-push: refusing non-fast-forward (force) push to main" >&2; exit 1
+  fi
+done
+exit 0

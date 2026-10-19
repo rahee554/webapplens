@@ -23,6 +23,16 @@ Dynamic segments (numbers, UUIDs, hex ids) become `:id`; paging/sort/search quer
 - Crashes: the crawler restarts the browser up to `maxRestarts` times, re-using `.secrets/storage-state.json`; just re-run `crawl` to resume after anything else.
 - Pausing: Ctrl-C stops after the current page and keeps state.
 
+## Known blind spots (check before trusting numbers)
+- Sampled dynamic routes list forms per example URL under one route (e.g. three "Update" forms for `/customers/:id/edit`); titles/headings come from the last example, the screenshot from the first.
+- Row-level forms that only contain a button (e.g. a per-row Delete form) may be missing from `forms.json`; the control inventory still lists the button with its category.
+- Hidden inputs (CSRF tokens) are deliberately not recorded.
+- Plain lists (`<ul>`) are not captured as content, only tables; read the screenshot.
+- A hash route that renders after load can be screenshotted before it paints; re-check such pages by hand.
+- Navigation toggles repeat on every page, inflating the control count; GET search forms are labelled category B by their submit button although searching is read-only.
+- `state.skipped` counters count links per page visit, not unique links.
+- 404/403 pages: 403 gets a screenshot, 404 does not; the dead link's label is not stored with the route.
+
 ## Troubleshooting
 | Symptom | Fix |
 |---|---|

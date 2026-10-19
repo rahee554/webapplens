@@ -16,6 +16,8 @@
 4. Downloads disabled; service workers blocked.
 5. Credentials: env vars / git-ignored file; `--password` is rejected; password registered with the redactor; `.secrets/` and `credentials.json` git-ignored; saved session only in `.secrets/`.
 
+6. **Not covered by the guard:** anything you run outside the crawler. Playwright's `context.request` / `APIRequestContext`, `curl` and `fetch` from your own scripts ignore the browser's mutation guard and scope check. Never send logout, delete or other non-GET requests that way; a logout GET alone ends the saved session.
+
 ## Doing B/C work (rare)
 1. Get explicit confirmation of: sandbox identity, what may be created/changed, cleanup.
 2. Run with `--sandbox` on a **separate** crawl project or a dedicated interaction script; record each action with `observe --type verified_interaction` (what you did, result, how it was cleaned up).

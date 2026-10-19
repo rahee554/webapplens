@@ -9,7 +9,7 @@ Turns "how does this product work?" into evidence-backed documentation. A determ
 
 This skill is platform-neutral: plain Markdown plus a Node CLI, usable from Claude Code, Codex CLI or any agent that can read instructions and run shell commands. `<skill-dir>` is the folder containing this file (e.g. `.claude/skills/webapp-research`, `.codex/skills/webapp-research`, `.agents/skills/webapp-research`, or `skills/webapp-research` in the repo).
 
-All commands: `node <skill-dir>/scripts/cli.mjs <command>` (shown below as `wr`). Run `wr doctor` first on a new machine (checks Node, Playwright, launches Chromium). Missing dependencies: `npm install` in the skill folder, then `npx playwright install chromium`; install only with the user's OK.
+All commands: `node <skill-dir>/scripts/cli.mjs <command>`. Below, `wr` is only shorthand for that line — it is not an installed binary. Run `wr doctor` first on a new machine (checks Node, Playwright, launches Chromium). Missing dependencies: `npm install` in the skill folder, then `npx playwright install chromium`; install only with the user's OK.
 
 ## 1. Classify the request
 
@@ -44,7 +44,11 @@ wr compare candidates.json --top 5         # Mode D weighted ranking
 wr viewer "<AppName>"                      # rebuild dashboard.html (report does this too)
 ```
 
-The user sets the env vars (never ask them to paste passwords into chat; the CLI rejects `--password`). Data lands in `docs/references/<AppName>/` — see `references/output-layout.md`.
+**Credentials.** Preferred: the user exports env vars named in `docs/references/<AppName>/credentials.json` (`init --username-env/--password-env` writes the names). If the user instead gives a JSON file `{"username": "...", "password": "..."}`, run `crawl --credentials-file FILE` and never open or print it. Precedence: `--credentials-file`, then env vars, then values inside the project's `credentials.json`. Never ask for passwords in chat; the CLI rejects `--password`.
+
+**Where data goes.** `docs/references/<AppName>/` relative to the current folder. Use `--out DIR` to change the parent; after `init`, you can pass the full project directory (`<out>/<AppName>`) to every later command instead of repeating `--out`. `observe`, `report`, `audit`, `viewer` take the project as their first argument. Layout: `references/output-layout.md`.
+
+**Read-only extra probing.** Prefer CLI commands. If you must script the browser yourself, only `GET` pages inside scope, and know that Playwright's `context.request` / `APIRequestContext` bypasses the crawler's mutation guard — never request logout, delete or any non-GET URL through it.
 
 ## 4. The loop (don't stop after the first crawl)
 
@@ -52,6 +56,15 @@ The user sets the env vars (never ask them to paste passwords into chat; the CLI
 2. Close gaps: raise `--max-pages/--max-depth`, add `--probe-openers`, fix login config (`crawlers/config.json` → `auth`), or exclude noisy areas. Re-run `crawl` to **resume**; it never repeats finished pages.
 3. Analysis agents replace every `<!-- TODO(agent): … -->` in the agent-owned docs (`docs/product-overview.md`, `ui-patterns.md`, `user-guide.md`, `docs/technicals/*`, `docs/workflows/*.md`) using real routes and screenshots. Generated files (marked `generated:webapp-research`) are rewritten by `report`; never hand-edit them — to take one over, delete its marker line.
 4. `completeness-auditor` runs `audit`, lists what's missing, requests targeted re-exploration. Stop when the audit has no open issues you can fix, then state the remaining limits honestly.
+
+### Single-agent run, in order (no sub-agents)
+
+1. `doctor` → `init` → `crawl` → `report`; read `reports/completeness.md`.
+2. Widen the crawl for real gaps (`--probe-openers`, limits); re-run `crawl` to resume.
+3. Record findings as you go with `observe` (right evidence type each time).
+4. Write the agent-owned docs in this order: `docs/workflows/*.md` → `docs/ui-patterns.md` → `docs/technicals/*` → `docs/product-overview.md` → `docs/user-guide.md`. Delete or overwrite a template file freely; `report` only creates missing templates once and never overwrites a file you took over.
+5. `report` → `validate-links` → `audit`. Failed/blocked routes that are genuine findings (e.g. a dead link returning 404) stay listed as open — describe them in `docs/limitations.md` rather than trying to clear them.
+6. Final message: coverage per metric, blocked/failed items, limits hit, and what was *not* verified. Read `references/crawler.md` "Known blind spots" before trusting counts.
 
 ## 5. Non-negotiables (and why)
 
