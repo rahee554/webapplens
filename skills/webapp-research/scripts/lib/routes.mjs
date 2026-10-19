@@ -33,6 +33,12 @@ export function routeTemplate(normUrl) {
   return templSegs(u.pathname) + qs + hash;
 }
 
+/** Template for any URL (e.g. a form action): ids become :id, volatile query keys dropped. */
+export function templateOfUrl(url, base) {
+  const n = normalizeUrl(url, base);
+  return n ? routeTemplate(n) : String(url);
+}
+
 export function moduleOf(normUrl) {
   const u = new URL(normUrl);
   const parts = (u.pathname === '/' && /^#!?\//.test(u.hash) ? u.hash.replace(/^#!?/, '') : u.pathname)
@@ -94,6 +100,7 @@ export class RouteRegistry {
       parent: meta.parent ?? null,
       depth: meta.depth ?? 0,
       discovery: meta.via || 'seed',
+      discovered_label: meta.label || null,
       auth_required: null,
       access_status: 'unknown',
       status: 'discovered',

@@ -3,13 +3,15 @@
 import fs from 'node:fs';
 import { ensureDir, nowIso, readJson, shortHash, sleep, writeJson } from './util.mjs';
 import { makeScope } from './scope.mjs';
-import { normalizeUrl, RouteRegistry, routeTemplate } from './routes.mjs';
+import { normalizeUrl, RouteRegistry, routeTemplate, templateOfUrl } from './routes.mjs';
 import { classifyAction, isOpener } from './safety.mjs';
 import { resolveCredentials } from './credentials.mjs';
 import { inspectPage, isLoginPage, login, openSession } from './browser.mjs';
 import { planShot, recordShot } from './screenshots.mjs';
 import { addObservation } from './evidence.mjs';
 import { redactText } from './redact.mjs';
+import { inPageSignals, mergeSignals, newTechAcc } from './techstack.mjs';
+import { inPageDesign, mergeDesign, newDesignAcc } from './design.mjs';
 
 const CRASH_RE = /Target (page|closed)|browser has been closed|Browser closed|has been closed|crash/i;
 const short = (e) => redactText(String(e?.message || e)).split('\n')[0].slice(0, 200);
@@ -31,6 +33,10 @@ export async function crawl(project, opts = {}) {
   const failures = project.failures();
   const network = readJson(project.p.network, { api_calls: {}, per_route: {}, blocked: [] });
   network.blocked ||= [];
+  const techAcc = readJson(project.p.techStack, null) || newTechAcc();
+  const designAcc = readJson(project.p.designTokens, null) || newDesignAcc();
+  const focus = cfg.focus?.length ? cfg.focus : ['full'];
+  const want = (...fs) => focus.includes('full') || fs.some((f) => focus.includes(f));
   const done = new Set(state.done);
   state.skipped ||= {};
   state.skipped_links ||= [];
@@ -44,8 +50,14 @@ export async function crawl(project, opts = {}) {
   creds?.warnings.forEach((w) => project.log('warn', w));
 
   // ---- queue management -------------------------------------------------
+  // Counters are per unique link, not per page visit (a footer link would otherwise be counted on every page).
+  state.skipped_seen ||= {};
   const skip = (reason, url, label) => {
-    state.skipped[reason] = (state.skipped[reason] || 0) + 1;
+    const seen = (state.skipped_seen[reason] ||= []);
+    if (!seen.includes(url)) {
+      if (seen.length < 2000) seen.push(url);
+      state.skipped[reason] = (state.skipped[reason] || 0) + 1;
+    }
     if (reason === 'external') {
       try {
         const o = new URL(url).origin;
@@ -60,10 +72,10 @@ export async function crawl(project, opts = {}) {
     if (!norm) return skip(/^(mailto|tel|javascript|data|blob):/i.test(url) ? 'non-http' : 'invalid', url);
     const s = scope.check(norm, depth);
     if (!s.ok) {
-      if (s.reason === 'depth') registry.add(norm, { parent, depth, via }).route?.notes.push('not queued: beyond maxDepth');
+      if (s.reason === 'depth') registry.add(norm, { parent, depth, via, label }).route?.notes.push('not queued: beyond maxDepth');
       return skip(s.reason, norm);
     }
-    const r = registry.add(norm, { parent, depth, via });
+    const r = registry.add(norm, { parent, depth, via, label });
     if (r.visit) {
       state.queue.push({ url: norm, depth, parent, via });
       if (r.route.status === 'discovered') r.route.status = 'queued';
@@ -119,6 +131,7 @@ export async function crawl(project, opts = {}) {
 
   // ---- helpers ---------------------------------------------------------
   async function capture(route, kind, uiState, fullPage = true) {
+    if (!want('screenshots')) return null; // precise scope: screenshots only when asked for
     try {
       const { abs, rel } = planShot(project, route, { kind, state: uiState });
       ensureDir(project.p.dir);
@@ -140,7 +153,7 @@ export async function crawl(project, opts = {}) {
       const k = `${c.role}|${c.label}`;
       if (seen.has(k) || cur.length >= 300) continue;
       seen.add(k);
-      cur.push({ label: c.label, role: c.role, type: c.type, disabled: c.disabled, in_dialog: c.in_dialog, nav: c.nav, category: classifyAction(c.label, { role: c.role, type: c.type, toggle: c.expanded !== null }).category, exercised: false });
+      cur.push({ label: c.label, role: c.role, type: c.type, disabled: c.disabled, in_dialog: c.in_dialog, nav: c.nav, category: classifyAction(c.label, { role: c.role, type: c.type, toggle: c.expanded !== null, method: c.form_method }).category, exercised: false });
     }
     controlsMap[route.id] = cur;
     route.controls.total = cur.length;
@@ -159,17 +172,21 @@ export async function crawl(project, opts = {}) {
     const groups = [...data.forms];
     if (data.loose_fields.length) groups.push({ label: 'Standalone controls (search/filters)', action: null, method: null, in_dialog: false, visible: true, fields: data.loose_fields, submit: [] });
     for (const f of groups) {
-      if (!f.fields.length) continue;
-      const id = `F${shortHash(route.template + (f.action || 'loose') + f.fields.map((x) => x.name || x.label).join(','), 6)}`;
+      if (!f.fields.length && !f.submit?.length) continue;
+      // Identity ignores record ids in the action, so sampled examples (/customers/1/delete, /2/delete) are one form.
+      const actionT = f.action ? templateOfUrl(f.action, cfg.baseUrl) : 'loose';
+      const id = `F${shortHash(route.template + actionT + f.fields.map((x) => x.name || x.label).join(','), 6)}`;
+      const submitLabel = f.submit?.[0] || '';
       const spec = {
         id, route_id: route.id, ui_state: f.in_dialog && f.visible ? uiState : 'page', label: f.label || (f.submit?.[0] ? `"${f.submit[0]}" form` : 'Unnamed form'),
-        action: f.action ? redactText(f.action) : null, method: f.method, in_dialog: f.in_dialog, fields: f.fields, submit: f.submit,
+        kind: f.fields.length ? 'form' : 'action', action: f.action ? redactText(f.action) : null, action_template: actionT, method: f.method, in_dialog: f.in_dialog, fields: f.fields, submit: f.submit,
+        category: f.action ? classifyAction(submitLabel, { type: 'submit', method: f.method, href: f.action }).category : 'A',
         client_validation: { required: f.fields.filter((x) => x.required).map((x) => x.label || x.name), invalid_now: f.fields.filter((x) => x.invalid_now).map((x) => ({ field: x.label || x.name, message: x.invalid_now })) },
         submit_tested: false,
         inspected_at: nowIso(),
       };
       const i = forms.findIndex((x) => x.id === id);
-      if (i >= 0) forms[i] = { ...forms[i], ...spec, ui_state: spec.ui_state === 'page' ? forms[i].ui_state : spec.ui_state };
+      if (i >= 0) forms[i] = { ...spec, ...forms[i], fields: spec.fields, ui_state: spec.ui_state === 'page' ? forms[i].ui_state : spec.ui_state };
       else forms.push(spec);
       if (!route.forms.includes(id)) route.forms.push(id);
     }
@@ -180,7 +197,7 @@ export async function crawl(project, opts = {}) {
       if (l.download) continue;
       if (!/^https?:/i.test(l.href)) { skip('non-http', l.href); continue; }
       if (classifyAction(l.text, { role: 'link', href: l.href }).category === 'C') { skip('consequential_link', l.href, l.text); continue; }
-      enqueue(l.href, depth + 1, route.id, l.nav ? 'nav' : 'link');
+      enqueue(l.href, depth + 1, route.id, l.nav ? 'nav' : 'link', l.text);
     }
     upsertControls(route, data.controls);
     upsertForms(route, data, uiState);
@@ -244,6 +261,8 @@ export async function crawl(project, opts = {}) {
       if (CRASH_RE.test(nav.error)) throw new Error(nav.error);
       return fail(/ERR_BLOCKED_BY_CLIENT/.test(nav.error) ? 'blocked' : 'failed', 'navigation_error', short({ message: nav.error }));
     }
+    // Give client-side rendering a moment; hash routes render after load, so wait longer for them.
+    await page.waitForTimeout((cfg.settleMs ?? 150) + (/^#!?\//.test(new URL(page.url()).hash) ? 400 : 0));
     const status = nav.response?.status() ?? 200;
     const finalUrl = page.url();
     const finalScope = scope.check(finalUrl, 0);
@@ -259,7 +278,10 @@ export async function crawl(project, opts = {}) {
       await capture(route, 'all', '');
       return fail('blocked', 'forbidden', `HTTP ${status}`);
     }
-    if (status === 404 || status === 410) return fail('failed', 'not_found', `HTTP ${status}`);
+    if (status === 404 || status === 410) {
+      await capture(route, 'all', '');
+      return fail('failed', 'not_found', `HTTP ${status}`);
+    }
     if (status >= 500) return fail('failed', 'server_error', `HTTP ${status}`);
 
     const finalNorm = normalizeUrl(finalUrl);
@@ -280,16 +302,30 @@ export async function crawl(project, opts = {}) {
     route.breadcrumbs = data.breadcrumbs;
     route.headings = data.headings;
     route.tables = data.tables;
+    route.lists = data.lists;
     route.pagination = data.pagination;
     route.has_search = data.has_search;
     // Only navigation the crawler is allowed to follow counts toward "unexplored navigation".
     route.nav = [...new Set(data.links.filter((l) => l.nav && scope.check(l.href, 0).ok && classifyAction(l.text, { role: 'link', href: l.href }).category !== 'C').map((l) => normalizeUrl(l.href)).filter(Boolean))].slice(0, 80);
     route.last_inspected_at = nowIso();
+    route.a11y = data.a11y;
+    // Tech stack + design research (passive; cookie values are never read).
+    if (want('stack', 'architecture', 'suggestions', 'ui')) try {
+      const sig = await page.evaluate(inPageSignals);
+      const cookies = (await session.context.cookies()).map((c) => ({ name: c.name, httpOnly: c.httpOnly, secure: c.secure, sameSite: c.sameSite }));
+      mergeSignals(techAcc, sig, { headers: nav.response ? await nav.response.allHeaders().catch(() => ({})) : {}, cookies });
+      if (want('ui', 'suggestions')) mergeDesign(designAcc, await page.evaluate(inPageDesign));
+      route.perf = await page.evaluate(() => {
+        const n = performance.getEntriesByType('navigation')[0];
+        const res = performance.getEntriesByType('resource');
+        return n ? { ttfb: Math.round(n.responseStart), dom_content_loaded: Math.round(n.domContentLoadedEventEnd), load: Math.round(n.loadEventEnd), requests: res.length, transfer_kb: Math.round(res.reduce((a, r) => a + (r.transferSize || 0), 0) / 1024) } : null;
+      });
+    } catch (e) { project.log('warn', `design/tech scan failed on ${route.id}: ${short(e)}`); }
 
     if (!route.screenshots.length) await capture(route, 'all', '');
     harvest(route, data, depth, 'page');
 
-    if (cfg.clickTabs) {
+    if (cfg.clickTabs && want('screenshots', 'forms', 'workflows', 'data-model', 'docs')) {
       const tabs = data.controls.filter((c) => c.role === 'tab' && c.label && c.visible && c.selected !== 'true' && !c.disabled).slice(0, cfg.maxTabsPerPage);
       for (const t of tabs) {
         if (classifyAction(t.label, { role: 'tab' }).category === 'C') continue;
@@ -327,7 +363,7 @@ export async function crawl(project, opts = {}) {
       }
     }
 
-    if (cfg.responsive.enabled && (state.stats.responsive || 0) < cfg.responsive.maxRoutes && !route.responsive) {
+    if (cfg.responsive.enabled && want('screenshots', 'ui') && (state.stats.responsive || 0) < cfg.responsive.maxRoutes && !route.responsive) {
       await page.setViewportSize({ width: cfg.responsive.width, height: cfg.responsive.height });
       await page.waitForTimeout(300);
       await capture(route, 'interactions', 'mobile');
@@ -386,6 +422,8 @@ export async function crawl(project, opts = {}) {
     project.saveControls(controlsMap);
     project.saveFailures(failures);
     writeJson(project.p.network, network);
+    writeJson(project.p.techStack, techAcc);
+    writeJson(project.p.designTokens, designAcc);
     project.saveState(state);
   };
   checkpoint();
@@ -422,6 +460,7 @@ export async function crawl(project, opts = {}) {
       state.stats.pages_visited++;
       checkpoint();
       project.log('info', `visited ${item.url} (queue ${state.queue.length})`);
+      opts.onProgress?.({ url: item.url, done: done.size, queue: state.queue.length });
       if (cfg.delayMs) await sleep(cfg.delayMs);
     }
     if (!state.queue.length) state.stop_reason = state.stop_reason || 'queue_exhausted';

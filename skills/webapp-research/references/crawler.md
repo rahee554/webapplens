@@ -2,6 +2,8 @@
 
 ## Commands & flags
 `crawl <App|dir>`: `--max-pages N` (total across resumes, default 150) · `--max-depth N` (4) · `--max-per-template N` (3 example URLs per dynamic route) · `--time-budget SEC` (900) · `--probe-openers` · `--responsive` · `--headed` · `--credentials-file F` · `--sandbox` · `--allow-post REGEX` (repeatable) · `--exclude REGEX` (repeatable).
+`--profile quick|standard|deep|auto` picks a limit set; `--auto` is an alias of `--profile auto` (recommended settings: deep limits, openers + responsive + tabs on, read-only GraphQL queries allowed, automatic re-crawl rounds while a limit was the stop reason). `init` accepts the same flags. See `auto-mode.md`.
+Extra commands: `probe <App|dir> <url...> [--screenshot] [--text]` (read-only GET through the saved session and mutation guard; use it instead of hand-written browser scripts) · `accept <App|dir> <routeId> --reason "..."` (expected failed/blocked route stays listed but no longer counts as open).
 Flags override `crawlers/config.json` for that run only (config is not rewritten); edit the file for permanent changes.
 
 ## What one visit does

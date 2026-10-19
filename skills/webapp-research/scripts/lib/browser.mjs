@@ -2,7 +2,7 @@
 import { createRequire } from 'node:module';
 import { execSync } from 'node:child_process';
 import path from 'node:path';
-import { SAFE_METHODS } from './safety.mjs';
+import { SAFE_METHODS, isReadOnlyGraphql } from './safety.mjs';
 import { inPageInspect } from './inspect.mjs';
 import { nowIso } from './util.mjs';
 import { redactText, redactUrl } from './redact.mjs';
@@ -55,11 +55,12 @@ export async function openSession(cfg, scope, { storageState, headless } = {}) {
     const req = route.request();
     const url = req.url();
     if (guard.enabled && /^https?:/.test(url)) {
-      if (!SAFE_METHODS.has(req.method()) && !cfg.sandbox && !allowPost.some((re) => re.test(url))) {
+      const gqlRead = cfg.allowReadOnlyGraphql && req.method() === 'POST' && /graphql/i.test(url) && isReadOnlyGraphql(req.postData());
+      if (!SAFE_METHODS.has(req.method()) && !cfg.sandbox && !gqlRead && !allowPost.some((re) => re.test(url))) {
         guard.blocked.push({ method: req.method(), url: redactUrl(url), at: nowIso() });
         return route.abort('blockedbyclient');
       }
-      if (req.isNavigationRequest() && !scope.check(url, 0).ok && scope.check(url, 0).reason !== 'depth') {
+      if (cfg.scopeGuard !== false && req.isNavigationRequest() && !scope.check(url, 0).ok && scope.check(url, 0).reason !== 'depth') {
         guard.blocked.push({ method: 'NAVIGATE', url: redactUrl(url), at: nowIso(), reason: 'out of scope' });
         return route.abort('blockedbyclient');
       }

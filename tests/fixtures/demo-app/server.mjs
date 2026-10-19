@@ -91,13 +91,22 @@ const customerDetail = (id, tab) => layout(`Customer ${id}`, `<h1>Customer ${id}
 <script>function sel(n){for(let i=1;i<=3;i++){document.getElementById('p'+i).classList.toggle('active',i===n);document.getElementById('t'+i).setAttribute('aria-selected',String(i===n))}}</script>`);
 
 export function startServer(port = 0) {
-  const stats = { mutations: [], logoutHits: 0, loginPosts: 0, hits: {} };
+  const stats = { mutations: [], logoutHits: 0, loginPosts: 0, graphql: [], hits: {} };
   const server = http.createServer((req, res) => {
     const u = new URL(req.url, 'http://x');
     stats.hits[u.pathname] = (stats.hits[u.pathname] || 0) + 1;
     const send = (code, html, headers = {}) => { res.writeHead(code, { 'content-type': 'text/html; charset=utf-8', ...headers }); res.end(html); };
     const authed = /sid=ok/.test(req.headers.cookie || '');
 
+    if (u.pathname === '/demo-info') {
+      return send(200, layout('Demo access', `<h1>Live demo</h1><p>Try the live preview. Demo login — Username: ${DEMO_USER} Password: ${DEMO_PASS}</p><p>Legacy admin: admin@admin.com / 123456</p><p>Your password: ********</p><a href="/login">Open the login page</a>`, { nav: false }));
+    }
+    if (u.pathname === '/graphql' && req.method === 'POST') {
+      let b = '';
+      req.on('data', (c) => (b += c));
+      req.on('end', () => { stats.graphql.push(b); send(200, '{"data":{}}', { 'content-type': 'application/json' }); });
+      return;
+    }
     if (u.pathname === '/login') {
       if (req.method === 'POST') {
         stats.loginPosts++;

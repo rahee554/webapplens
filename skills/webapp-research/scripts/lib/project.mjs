@@ -1,10 +1,16 @@
 // Research project storage: directory layout, config/state persistence, logging, manifests.
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { appendJsonl, ensureDir, nowIso, readJson, readJsonl, shortHash, slug, writeJson, writeText } from './util.mjs';
 import { redactText } from './redact.mjs';
 
-export const TOOL_VERSION = '0.1.0';
+/** Research lives in a hidden folder in the project root. */
+export const DEFAULT_OUT = '.webapplens/docs';
+
+export const TOOL_VERSION = (() => {
+  try { return fs.readFileSync(path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', 'VERSION'), 'utf8').trim(); } catch { return '0.0.0'; }
+})();
 export const SCHEMA_VERSION = 1;
 
 export const DEFAULT_CONFIG = {
@@ -36,8 +42,29 @@ export const DEFAULT_CONFIG = {
   // Regexes for read-only POST endpoints (GraphQL, JSON-RPC search) the guard should let through.
   allowPostPatterns: [],
   persistSession: true,
+  // Precise scope: which research facets to run (see lib/intent.mjs). 'full' = everything.
+  focus: ['full'],
+  settleMs: 150,
+  // Let GraphQL POSTs through when every operation is a query (never mutations/subscriptions).
+  allowReadOnlyGraphql: false,
+  autoRounds: 0,
   auth: { required: false, loginPath: '/login', userSelector: null, passwordSelector: null, submitSelector: null },
 };
+
+/** Recommended presets. `auto` = what an agent should choose when the user says "decide for me". */
+export const PROFILES = {
+  quick: { maxPages: 30, maxDepth: 2, maxPerTemplate: 2, timeBudgetSec: 300, probeOpeners: false, responsive: { enabled: false } },
+  standard: {},
+  deep: { maxPages: 400, maxDepth: 6, maxPerTemplate: 5, timeBudgetSec: 2400, probeOpeners: true, responsive: { enabled: true, maxRoutes: 8 } },
+  auto: { maxPages: 400, maxDepth: 6, maxPerTemplate: 5, timeBudgetSec: 2400, probeOpeners: true, responsive: { enabled: true, maxRoutes: 8 }, allowReadOnlyGraphql: true, autoRounds: 3 },
+};
+
+export function applyProfile(config, name) {
+  if (!name) return config;
+  const p = PROFILES[name];
+  if (!p) throw new Error(`Unknown profile "${name}". Use: ${Object.keys(PROFILES).join(', ')}.`);
+  return { ...config, ...p, responsive: { ...config.responsive, ...(p.responsive || {}) } };
+}
 
 export function projectPaths(dir) {
   const j = (...p) => path.join(dir, ...p);
@@ -67,6 +94,11 @@ export function projectPaths(dir) {
     network: j('evidence', 'network-summary.json'),
     reports: j('reports'),
     log: j('logs', 'research.log'),
+    board: j('roundtable', 'board.jsonl'),
+    techStack: j('evidence', 'tech-stack.json'),
+    designTokens: j('evidence', 'design-tokens.json'),
+    suggestions: j('evidence', 'suggestions.json'),
+    repoScan: j('evidence', 'repo-scan.json'),
   };
 }
 
@@ -129,6 +161,9 @@ export function initProject({ outRoot, app, baseUrl, mode = 'C', scopeText = 'al
     notes: 'Fill the environment variables named above. Do not paste passwords into this file.',
   });
   writeText(path.join(dir, '.gitignore'), '.secrets/\ncredentials.json\n*.local.json\n');
+  // Hidden research root: keep public-but-sensitive discovery probes and secrets out of git by default.
+  const root = path.dirname(path.resolve(outRoot));
+  if (path.basename(root) === '.webapplens' && !fs.existsSync(path.join(root, '.gitignore'))) writeText(path.join(root, '.gitignore'), '_discovery/\n**/.secrets/\n**/credentials.json\n');
   const project = openProject(dir);
   project.log('info', `initialized project ${app} (${baseUrl})`);
   return { dir, created: true, project };

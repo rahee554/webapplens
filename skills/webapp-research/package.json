@@ -1,10 +1,16 @@
 {
   "name": "webapp-research-skill",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "WebAppLens skill runtime: Playwright-based, read-only web application research CLI.",
   "type": "module",
   "license": "MIT",
-  "engines": { "node": ">=22" },
-  "scripts": { "doctor": "node scripts/cli.mjs doctor" },
-  "dependencies": { "playwright": "~1.58.2" }
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "doctor": "node scripts/cli.mjs doctor"
+  },
+  "dependencies": {
+    "playwright": "~1.58.2"
+  }
 }

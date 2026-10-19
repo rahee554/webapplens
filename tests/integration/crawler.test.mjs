@@ -223,3 +223,159 @@ test('crawl refuses to start without credentials when login is required', async 
     [process.env.SHOP_USERNAME, process.env.SHOP_PASSWORD] = saved;
   }
 });
+
+// ---- flaws found by the agent evaluation, plus discovery/probe features ----------------------------------
+
+test('crawl quality: action forms, deduped examples, GET search, lists, dead-link label, unique skip counts', () => {
+  const t = (tpl) => full.routes.find((r) => r.template === tpl);
+  // row-level Delete forms are inventoried once (templated action), as category C, never submitted
+  const del = full.forms.filter((f) => f.kind === 'action' && /delete/.test(f.action_template));
+  assert.equal(del.length, 1);
+  assert.equal(del[0].category, 'C');
+  assert.equal(del[0].submit_tested, false);
+  // sampled examples of /customers/:id/edit are one form, not three
+  const edit = full.forms.filter((f) => f.route_id === t('/customers/:id/edit').id && f.kind === 'form');
+  assert.equal(edit.length, 1);
+  // a GET search form's button is read-only
+  const search = Object.values(full.controls).flat().find((c) => c.label === 'Search');
+  assert.equal(search.category, 'A');
+  // plain lists are captured as content
+  assert.equal(t('/inventory/categories').lists[0].items, 2);
+  assert.deepEqual(t('/inventory/categories').lists[0].sample, ['Hardware', 'Software']);
+  // dead link: label kept and the 404 page is screenshotted
+  assert.equal(t('/missing-page').discovered_label, 'Old page');
+  assert.ok(t('/missing-page').screenshots.length >= 1);
+  // skip counters are per unique link, not per page visit
+  const sk = full.project.state().skipped;
+  assert.equal(sk.external, 1);
+  assert.equal(sk['non-http'], 1);
+  // unique-control accounting: the nav toggle repeated on every page counts once
+  const a = fullAudit(full.project);
+  assert.ok(a.controls.instances > a.controls.catalogued);
+});
+
+test('hash routes get time to render before they are captured', () => {
+  const sales = full.routes.find((r) => r.template === '/#/sales');
+  assert.ok(sales && sales.status === 'explored');
+});
+
+test('probe: read-only GET through the saved session and guards; out-of-scope URLs are refused', async () => {
+  const { probeUrls } = await import('../../skills/webapp-research/scripts/lib/probe.mjs');
+  const before = app.stats.mutations.length;
+  const out = await probeUrls(full.project, ['/customers?page=2', 'https://example.org/x', '/logout-never'], { text: true, screenshot: true });
+  const ok = out.find((o) => o.url?.includes('/customers?page=2'));
+  assert.equal(ok.status, 200);
+  assert.match(ok.text, /Customer 6/);
+  assert.ok(fs.existsSync(path.join(full.project.p.dir, ok.screenshot)));
+  assert.match(out.find((o) => o.url === 'https://example.org/x').error, /out of scope/);
+  assert.equal(app.stats.mutations.length, before);
+  assert.equal(app.stats.logoutHits, 0);
+});
+
+test('read-only GraphQL guard: queries pass, mutations are blocked (only when enabled)', async () => {
+  const cfg = { viewport: { width: 640, height: 480 }, navTimeoutMs: 5000, headless: true, allowReadOnlyGraphql: true };
+  const s = await openSession(cfg, makeScope({ baseUrl: app.url }), {});
+  await s.page.goto(`${app.url}/demo-info`);
+  s.guard.enabled = true;
+  const post = (body) => s.page.evaluate(async (b) => { try { await fetch('/graphql', { method: 'POST', body: b }); return 'sent'; } catch { return 'blocked'; } }, body);
+  assert.equal(await post(JSON.stringify({ query: 'query { a }' })), 'sent');
+  assert.equal(await post(JSON.stringify({ query: 'mutation { b }' })), 'blocked');
+  await s.close();
+  const strict = await openSession({ ...cfg, allowReadOnlyGraphql: false }, makeScope({ baseUrl: app.url }), {});
+  await strict.page.goto(`${app.url}/demo-info`);
+  strict.guard.enabled = true;
+  const r = await strict.page.evaluate(async () => { try { await fetch('/graphql', { method: 'POST', body: JSON.stringify({ query: 'query { a }' }) }); return 'sent'; } catch { return 'blocked'; } });
+  await strict.close();
+  assert.equal(r, 'blocked', 'off by default');
+  assert.equal(app.stats.graphql.length, 1);
+  assert.match(app.stats.graphql[0], /query \{ a \}/);
+});
+
+test('demo discovery: probe finds published credentials; ONE login attempt each; secrets saved only when verified', async () => {
+  const { probeDemo, demoLogin } = await import('../../skills/webapp-research/scripts/lib/discovery.mjs');
+  const outDir = path.join(root, '.webapplens', 'docs');
+  const { file, probe } = await probeDemo(`${app.url}/demo-info`, { outDir });
+  assert.ok(file.includes('_discovery'));
+  assert.equal(probe.captcha, false);
+  assert.equal(probe.credential_candidates.length, 2, 'placeholder "********" is not a candidate');
+  assert.equal(probe.credential_candidates[0].username, DEMO_USER);
+  assert.ok(probe.links.some((l) => /login/i.test(l.text)));
+
+  const project = initProject({ outRoot: outDir, app: 'Found', baseUrl: app.url }).project;
+  const posts0 = app.stats.loginPosts;
+  const bad = await demoLogin(file, { index: 1, saveTo: project.dir });
+  assert.equal(bad.ok, false);
+  assert.equal(bad.attempts, 1);
+  assert.equal(app.stats.loginPosts, posts0 + 1, 'exactly one attempt');
+  let meta = JSON.parse(fs.readFileSync(project.p.credentials, 'utf8'));
+  assert.equal(meta.verification_status, 'failed');
+  assert.ok(!('password' in meta), 'unverified credentials are not stored');
+
+  // the demo page has no form of its own: demoLogin follows its login link
+  const loginProbe = { file };
+  const good = await demoLogin(loginProbe.file, { index: 0, saveTo: project.dir });
+  assert.equal(good.ok, true);
+  assert.equal(app.stats.loginPosts, posts0 + 2);
+  meta = JSON.parse(fs.readFileSync(project.p.credentials, 'utf8'));
+  assert.equal(meta.verification_status, 'verified');
+  assert.equal(meta.credentials_source, 'vendor_published');
+  assert.match(meta.source_url, /demo-info/);
+  assert.match(fs.readFileSync(path.join(path.dirname(outDir), '.gitignore'), 'utf8'), /_discovery\//, 'discovery probes (public credentials) are git-ignored by default');
+});
+
+// ---- UI research, stack detection, suggestions and precise scope on the real browser -------------------------
+
+test('UI + stack research from a real crawl: tokens, tech doc, a11y/perf facts and suggestions', async () => {
+  const { readFileSync, existsSync } = fs;
+  const p = full.project;
+  generateDocs(p);
+  const tokens = JSON.parse(readFileSync(path.join(p.p.technicals, 'design-tokens.json'), 'utf8'));
+  assert.equal(tokens.colors.primary, '#4f46e5', 'the fixture accent colour is recovered from computed styles');
+  assert.ok(tokens.typography.families.length >= 1 && tokens.typography.scale.length >= 3);
+  assert.ok(tokens.radii.includes(9) || tokens.radii.includes(12) || tokens.radii.includes(14) || tokens.radii.length >= 1);
+  const design = readFileSync(path.join(p.p.technicals, 'design-system-observed.md'), 'utf8');
+  assert.match(design, /Design system \(observed\)/);
+  assert.match(design, /\*\*inferred\*\*/);
+  const stack = readFileSync(path.join(p.p.technicals, 'tech-stack.md'), 'utf8');
+  assert.match(stack, /inferred/);
+  assert.match(stack, /Cookies \(names and flags only\)/);
+  assert.match(stack, /sid/, 'cookie name is listed');
+  assert.ok(!stack.includes('sid=ok') && !/ok\b.*HttpOnly.*ok/.test(stack), 'cookie values are never recorded');
+  // per-route facts
+  const home = full.project.routes().find((r) => r.template === '/customers');
+  assert.ok(home.a11y && typeof home.a11y.h1_count === 'number');
+  assert.ok(home.perf && home.perf.load >= 0);
+  assert.equal(home.a11y.has_viewport, false, 'the fixture has no viewport meta');
+  // suggestions come out of those facts
+  const sug = readFileSync(path.join(p.p.reports, 'suggestions.md'), 'utf8');
+  assert.match(sug, /No responsive viewport meta tag/);
+  assert.match(sug, /Dead link to \/missing-page/);
+  assert.ok(existsSync(path.join(p.p.dir, 'evidence', 'suggestions.json')));
+  const obs = p.observations();
+  assert.ok(obs.every((o) => !/laravel|django|react/i.test(o.claim) || o.type === 'inferred'), 'stack conclusions are always typed inferred');
+});
+
+test('precise scope: focus ui+stack runs only those scans, no screenshots and no unrelated doc templates', async () => {
+  const project = mkProject('FocusUI', { focus: ['ui', 'stack'], maxPages: 6, probeOpeners: false, responsive: { enabled: false } });
+  const res = await crawl(project, {});
+  assert.ok(res.pages >= 3);
+  assert.equal(project.shots().length, 0, 'screenshots were not asked for');
+  assert.deepEqual(fs.readdirSync(project.p.shotsAll), []);
+  const design = JSON.parse(fs.readFileSync(project.p.designTokens, 'utf8'));
+  const tech = JSON.parse(fs.readFileSync(project.p.techStack, 'utf8'));
+  assert.ok(design.pages >= 3 && tech.pages >= 3);
+  const audit = generateDocs(project);
+  assert.equal(audit.screenshots.required, 0, 'screenshot coverage is not demanded when not requested');
+  assert.ok(!audit.issues.some((i) => /screenshot/i.test(i)));
+  assert.ok(fs.existsSync(path.join(project.p.docs, 'ui-patterns.md')), 'ui template created');
+  for (const absent of ['user-guide.md', 'product-overview.md', 'technicals/architecture-proposal.md', 'technicals/data-model.md', 'improvement-plan.md']) assert.ok(!fs.existsSync(path.join(project.p.docs, absent)), `${absent} was not requested`);
+  assert.ok(!fs.existsSync(path.join(project.p.reports, 'suggestions.md')), 'suggestions not requested');
+});
+
+test('precise scope: focus screenshots alone skips design/tech scans', async () => {
+  const project = mkProject('FocusShots', { focus: ['screenshots'], maxPages: 4, probeOpeners: false, responsive: { enabled: false } });
+  await crawl(project, {});
+  assert.ok(project.shots().length >= 3);
+  assert.equal(JSON.parse(fs.readFileSync(project.p.designTokens, 'utf8')).pages, 0);
+  assert.equal(JSON.parse(fs.readFileSync(project.p.techStack, 'utf8')).pages, 0);
+});

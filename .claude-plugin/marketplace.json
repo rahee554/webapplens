@@ -1,0 +1,17 @@
+{
+  "name": "webapplens",
+  "owner": {
+    "name": "Raheel Ahmad",
+    "url": "https://artflow.pk"
+  },
+  "plugins": [
+    {
+      "name": "webapplens",
+      "source": "./",
+      "description": "Research web applications safely and with evidence: read-only crawler, marketplace and demo discovery, multi-agent roundtable, and two-layer documentation.",
+      "version": "0.2.0",
+      "category": "development"
+    }
+  ],
+  "description": "WebAppLens: research web applications safely and with evidence - UI/theme and tech-stack research, architecture proposals, demo discovery, client-ready docs."
+}

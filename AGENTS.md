@@ -17,7 +17,7 @@ node scripts/install.mjs --platform claude|codex|agents --scope project   # inst
 
 ## Layout
 - `skills/webapp-research/SKILL.md` – the skill entry point (front matter: `name`, `description`)
-- `skills/webapp-research/agents/*.md` – nine role playbooks
+- `skills/webapp-research/agents/*.md` – sixteen role playbooks
 - `skills/webapp-research/scripts/cli.mjs`, `scripts/lib/*.mjs` – CLI and libraries (no TypeScript, ESM)
 - `skills/webapp-research/references/`, `templates/` – on-demand docs and templates (incl. dashboard template)
 - `tests/unit`, `tests/integration`, `tests/fixtures/demo-app` – `node:test` suites and a local fixture web app

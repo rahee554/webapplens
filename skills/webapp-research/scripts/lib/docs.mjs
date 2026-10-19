@@ -10,13 +10,19 @@ import { DEFINITIONS, fullAudit } from './coverage.mjs';
 import { credentialSummary } from './credentials.mjs';
 import { EVIDENCE_TYPES } from './evidence.mjs';
 import { writeDashboard } from './viewer.mjs';
+import { readJson } from './util.mjs';
+import { detectStack, newTechAcc } from './techstack.mjs';
+import { renderTechDoc } from './techdoc.mjs';
+import { designTokensJson, newDesignAcc, renderDesignDoc } from './design.mjs';
+import { writeSuggestions } from './suggest.mjs';
+import { addObservation } from './evidence.mjs';
 
 const GEN = '<!-- generated:webapp-research (rewritten by `report`; write analysis in agent-owned files) -->';
 const esc = (s) => String(s ?? '').replace(/\|/g, '\\|').replace(/\n/g, ' ');
 const list = (a) => (a.length ? a.map((x) => `- ${x}`).join('\n') : '- (none)');
 const table = (head, rows) => (rows.length ? `| ${head.join(' | ')} |\n|${head.map(() => '---').join('|')}|\n${rows.map((r) => `| ${r.map(esc).join(' | ')} |`).join('\n')}` : '_None._');
 
-function writeGenerated(file, body) {
+export function writeGenerated(file, body) {
   if (fs.existsSync(file) && !fs.readFileSync(file, 'utf8').includes('generated:webapp-research')) return false; // taken over by an agent
   writeText(file, `${GEN}\n\n${body.trim()}\n`);
   return true;
@@ -26,19 +32,21 @@ function writeOwned(file, body) {
 }
 
 const AGENT_DOCS = {
-  'docs/product-overview.md': ['Product overview', 'In plain English: what the application is for, who uses it, and its main areas. Base every statement on routes/screenshots; mark anything unverified.'],
-  'docs/ui-patterns.md': ['UI patterns', 'Layout, navigation, tables, forms, dialogs and consistency, with screenshot references and exact routes.'],
-  'docs/user-guide.md': ['User guide', 'Step-by-step guides for the main tasks in very simple English. Do not describe steps that were not observed.'],
-  'docs/technicals/architecture.md': ['Architecture (observed vs. likely)', 'Separate "Observed" from "Likely (inferred)". Never present a database schema or backend framework as confirmed without evidence.'],
-  'docs/technicals/data-model.md': ['Data model (proposed)', 'Entities and relationships seen in the UI. Label every table/column as PROPOSED unless verified by official docs or public source.'],
-  'docs/technicals/api-analysis.md': ['API analysis', 'Use docs/technicals/api-observed.md as evidence. Describe only calls that were seen; mark contracts as inferred.'],
-  'docs/technicals/authentication.md': ['Authentication', 'Login flow, session handling and MFA/CAPTCHA behaviour as observed.'],
-  'docs/technicals/authorization.md': ['Authorization & roles', 'Roles/permissions observed (e.g. 403 pages, hidden menu items). State which roles were actually tested.'],
-  'docs/technicals/integrations.md': ['Integrations', 'External services (see limitations.md for external origins). Evidence required for each.'],
-  'docs/technicals/design-system.md': ['Design system', 'Colours, typography, spacing, component conventions observed.'],
-  'docs/technicals/workflows.md': ['Workflows (technical)', 'State transitions and prerequisites per workflow; link to docs/workflows/*.md.'],
-  'docs/technicals/implementation-guide.md': ['Implementation guide', 'Acceptance criteria, form specs, route map and open questions so another developer or AI agent can build a comparable feature.'],
-  'docs/technicals/unknowns.md': ['Unknowns & verification gaps', 'Everything that could not be verified, and what would verify it.'],
+  'docs/product-overview.md': ['Product overview', 'In plain English: what the application is for, who uses it, and its main areas. Base every statement on routes/screenshots; mark anything unverified.', ['docs']],
+  'docs/ui-patterns.md': ['UI patterns', 'Layout, navigation, tables, forms, dialogs and consistency, with screenshot references and exact routes. Use technicals/design-system-observed.md for measured colours/type.', ['ui']],
+  'docs/user-guide.md': ['User guide', 'Step-by-step guides for the main tasks in very simple English. Do not describe steps that were not observed.', ['docs']],
+  'docs/technicals/architecture.md': ['Architecture (observed vs. likely)', 'Separate "Observed" from "Likely (inferred)". Start from technicals/architecture-baseline.md and tech-stack.md. Never present a database schema or backend framework as confirmed without evidence.', ['architecture']],
+  'docs/technicals/architecture-proposal.md': ['Architecture proposal', 'Target architecture for the requested stack: modules, data model (from proposed-schema.md), API outline, auth, deployment, risks, phased roadmap. Every inferred element stays labelled PROPOSED.', ['architecture']],
+  'docs/technicals/data-model.md': ['Data model (proposed)', 'Refine technicals/proposed-schema.md. Label every table/column as PROPOSED unless verified by official docs or public source.', ['data-model', 'architecture']],
+  'docs/technicals/api-analysis.md': ['API analysis', 'Use docs/technicals/api-observed.md as evidence. Describe only calls that were seen; mark contracts as inferred.', ['api', 'architecture']],
+  'docs/technicals/authentication.md': ['Authentication', 'Login flow, session handling and MFA/CAPTCHA behaviour as observed.', ['architecture']],
+  'docs/technicals/authorization.md': ['Authorization & roles', 'Roles/permissions observed (e.g. 403 pages, hidden menu items). State which roles were actually tested.', ['architecture']],
+  'docs/technicals/integrations.md': ['Integrations', 'External services (see limitations.md for external origins and tech-stack.md). Evidence required for each.', ['architecture']],
+  'docs/technicals/design-system.md': ['Design system', 'Interpret technicals/design-system-observed.md: tokens, component rules, gaps, and recommended token structure.', ['ui']],
+  'docs/technicals/workflows.md': ['Workflows (technical)', 'State transitions and prerequisites per workflow; link to docs/workflows/*.md.', ['workflows']],
+  'docs/technicals/implementation-guide.md': ['Implementation guide', 'Acceptance criteria, form specs, route map and open questions so another developer or AI agent can build a comparable feature.', ['architecture', 'docs']],
+  'docs/technicals/unknowns.md': ['Unknowns & verification gaps', 'Everything that could not be verified, and what would verify it.', ['architecture', 'docs']],
+  'docs/improvement-plan.md': ['Improvement plan', 'Turn reports/suggestions.md into a prioritised plan: what to change first, why, effort, expected impact, and how to verify. Add strategic ideas only when evidence supports them.', ['suggestions']],
 };
 
 export function generateDocs(project) {
@@ -52,14 +60,16 @@ export function generateDocs(project) {
   const state = project.state();
   const network = JSON.parse(fs.readFileSync(p.network, 'utf8'));
   const written = [];
+  const focus = project.config().focus?.length ? project.config().focus : ['full'];
+  const want = (...fs) => focus.includes('full') || fs.some((f) => focus.includes(f));
   const link = (from, rel) => relLink(from, path.join(p.dir, rel));
   const shotsOf = (r) => shots.filter((s) => s.route_id === r.id);
 
   // --- route inventory -------------------------------------------------
   writeGenerated(p.routeInventory, `# Route inventory — ${manifest.application}
 
-${table(['ID', 'Route', 'Title', 'Module', 'Status', 'Access', 'Forms', 'Controls', 'Screenshot'], routes.map((r) => [
-    r.id, `\`${r.template}\``, r.title || '', r.module + (r.submodule ? '/' + r.submodule : ''), r.status, r.access_status + (r.failure ? ` (${r.failure})` : ''), r.forms.length, `${r.controls.total}`,
+${table(['ID', 'Route', 'Title', 'Linked as', 'Module', 'Status', 'Access', 'Forms', 'Controls', 'Screenshot'], routes.map((r) => [
+    r.id, `\`${r.template}\``, r.title || '', r.discovered_label || '', r.module + (r.submodule ? '/' + r.submodule : ''), r.status + (r.accepted ? ' (accepted)' : ''), r.access_status + (r.failure ? ` (${r.failure})` : ''), r.forms.length, `${r.controls.total}`,
     r.screenshots[0] ? `[view](${link(p.routeInventory, r.screenshots[0])})` : '—']))}
 
 Statuses: discovered, queued, in_progress, explored, partial, blocked, failed, needs_verification.
@@ -80,6 +90,7 @@ Dynamic routes are shown as templates (\`:id\`); up to ${project.config().maxPer
       if (r.screenshots[0]) md += `- **Screenshot:** ![${esc(r.title || r.template)}](${link(file, r.screenshots[0])})\n`;
       const see = [];
       for (const t of r.tables || []) see.push(`A table${t.caption ? ` "${t.caption}"` : ''} with columns: ${t.headers.join(', ') || '(no headers)'} (${t.rows} row(s) on this view).`);
+      for (const l of r.lists || []) see.push(`A list of ${l.items} item(s), for example: ${l.sample.join(', ')}.`);
       if (r.has_search) see.push('A search box.');
       if (r.pagination?.present) see.push('Paging controls (next/previous pages).');
       for (const h of (r.headings || []).slice(0, 4)) see.push(`A heading: "${h}".`);
@@ -91,7 +102,7 @@ Dynamic routes are shown as templates (\`:id\`); up to ${project.config().maxPer
       if (change.length) md += `\n**Buttons that create or change information** (seen, not clicked): ${[...new Set(change)].join(', ')}.\n`;
       if (danger.length) md += `\n**Buttons with real-world effect** (seen, never clicked without approval): ${[...new Set(danger)].join(', ')}.\n`;
       const rf = modForms.filter((f) => f.route_id === r.id);
-      if (rf.length) md += `\n**Forms on this page:**\n${list(rf.map((f) => `${f.label} — ${f.fields.length} field(s) ([details](${relLink(file, ffile)}#${slug(f.label + ' ' + f.id)}))`))}\n`;
+      if (rf.length) md += `\n**Forms on this page:**\n${list(rf.map((f) => f.kind === 'action' ? `${f.label} — action button, category ${f.category}, never submitted ([details](${relLink(file, ffile)}#${slug(f.label + ' ' + f.id)}))` : `${f.label} — ${f.fields.length} field(s) ([details](${relLink(file, ffile)}#${slug(f.label + ' ' + f.id)}))`))}\n`;
       const extra = shotsOf(r).filter((s) => s.file !== r.screenshots[0]);
       if (extra.length) md += `\n**Other views captured:**\n${list(extra.map((s) => `${s.ui_state}: [screenshot](${link(file, s.file)})`))}\n`;
       if (r.notes?.length) md += `\n**Notes:** ${r.notes.slice(0, 5).join('; ')}.\n`;
@@ -103,6 +114,10 @@ Dynamic routes are shown as templates (\`:id\`); up to ${project.config().maxPer
     if (modForms.length) {
       let fm = `# Forms and fields — ${mod}\n\nFields were read from the page, not by submitting anything. "Required" comes from the page markup.\n`;
       for (const f of modForms) {
+        if (f.kind === 'action') {
+          fm += `\n## ${f.label} {#${slug(f.label + ' ' + f.id)}}\n\n- Action form (button only, no input fields): **${f.submit.join(', ') || 'submit'}** → ${f.method || '?'} \`${f.action_template}\` · safety category ${f.category} · route ${f.route_id} · never submitted.\n`;
+          continue;
+        }
         fm += `\n## ${f.label} {#${slug(f.label + ' ' + f.id)}}\n\n- Route: ${f.route_id} · shown in: ${f.ui_state} · method: ${f.method || 'n/a'} · form id: ${f.id}\n- Submit buttons: ${f.submit.join(', ') || '(none)'}\n- Submission tested: ${f.submit_tested ? 'yes' : 'no'}\n\n${table(['Field', 'Type', 'Required', 'Default', 'Options / limits'], f.fields.map((x) => [x.label || x.name, x.type, x.required ? 'yes' : 'no', x.default ?? '', [x.options?.join(', '), x.maxlength && `max ${x.maxlength}`, x.pattern && `pattern ${x.pattern}`, x.min && `min ${x.min}`, x.max && `max ${x.max}`].filter(Boolean).join('; ')]))}\n`;
       }
       writeGenerated(ffile, fm);
@@ -113,7 +128,9 @@ Dynamic routes are shown as templates (\`:id\`); up to ${project.config().maxPer
   // --- technical (generated) -------------------------------------------
   writeGenerated(path.join(p.technicals, 'routes.md'), `# Routes (observed)
 
-${table(['ID', 'Template', 'Parent', 'Found via', 'Depth', 'Auth required', 'Examples visited', 'Status'], routes.map((r) => [r.id, `\`${r.template}\``, r.parent || '—', r.discovery, r.depth, r.auth_required === null ? 'untested' : r.auth_required, r.examples.length + (r.skipped_variants ? ` (+${r.skipped_variants} sampled out)` : ''), r.status]))}
+${table(['ID', 'Template', 'Parent', 'Found via', 'Depth', 'Auth required', 'Examples visited', 'Status'], routes.map((r) => [r.id, `\`${r.template}\``, r.parent || '—', r.discovery, r.depth, r.auth_required === null ? 'not tested' : r.auth_required, r.examples.length + (r.skipped_variants ? ` (+${r.skipped_variants} sampled out)` : ''), r.status]))}
+
+\`Auth required: not tested\` means unauthenticated access to that route was not checked (the crawl used a logged-in session).
 
 \`\`\`mermaid
 flowchart TD
@@ -147,15 +164,30 @@ ${table(['ID', 'Type', 'Confidence', 'Claim', 'Route', 'Source'], obs.slice(0, 3
 
 - **Read-only crawl.** No form was submitted. Requests with methods other than GET/HEAD/OPTIONS were blocked (${(network.blocked || []).length} blocked).
 - **Access:** ${cs.access_type} (source: ${cs.credentials_source}; verification: ${cs.verification_status}). Only the permissions of that one account were seen; other roles are unverified.
-- **Blocked/failed routes:** ${routes.filter((r) => ['blocked', 'failed'].includes(r.status)).map((r) => `${r.template} (${r.failure})`).join('; ') || 'none'}.
+- **Blocked/failed routes:** ${routes.filter((r) => ['blocked', 'failed'].includes(r.status)).map((r) => `${r.template} (${r.failure})${r.discovered_label ? `, linked as \"${r.discovered_label}\"` : ''}${r.accepted ? `, accepted: ${r.accepted.reason}` : ''}`).join('; ') || 'none'}.
 - **Skipped on purpose:** ${Object.entries(state.skipped || {}).map(([k, v]) => `${k}: ${v}`).join(', ') || 'nothing'}.
 - **External services linked (not crawled):** ${(state.external_origins || []).join(', ') || 'none'}.
 - **Links skipped as consequential:** ${(state.skipped_links || []).map((l) => `"${l.label}"`).join(', ') || 'none'}.
 - **Dynamic routes** are sampled (${project.config().maxPerTemplate} example(s) per template), so individual record pages are not exhaustively covered.
 - Screenshots are not pixel-redacted; review before publishing.`);
 
+  // --- tech stack, design system, suggestions (only when those scans ran) ---
+  const techAcc = readJson(p.techStack, null);
+  if (techAcc && techAcc.pages) {
+    const detections = detectStack(techAcc);
+    writeGenerated(path.join(p.technicals, 'tech-stack.md'), renderTechDoc(techAcc, detections, manifest.application));
+    for (const d of detections.filter((x) => x.confidence !== 'low')) addObservation(project, { type: 'inferred', claim: `Technology detected: ${d.name}${d.version ? ' ' + d.version : ''} (${d.category}) from ${d.signals.length} independent signal(s): ${d.signals.slice(0, 3).join('; ')}.`, confidence: 'medium', notes: 'Passive signals only; not confirmed by the vendor.' });
+  }
+  const designAcc = readJson(p.designTokens, null);
+  if (designAcc && designAcc.pages) {
+    writeGenerated(path.join(p.technicals, 'design-system-observed.md'), renderDesignDoc(designAcc, manifest.application));
+    writeText(path.join(p.technicals, 'design-tokens.json'), JSON.stringify(designTokensJson(designAcc), null, 2) + '\n');
+  }
+  if (want('suggestions') && routes.some((r) => ['explored', 'partial'].includes(r.status))) writeSuggestions(project);
+
   // --- agent-owned templates -------------------------------------------
-  for (const [rel, [title, hint]] of Object.entries(AGENT_DOCS)) {
+  for (const [rel, [title, hint, facets]] of Object.entries(AGENT_DOCS)) {
+    if (!want(...facets)) continue; // precise scope: no templates for areas nobody asked about
     writeOwned(path.join(p.dir, rel), `# ${title} — ${manifest.application}\n\n${TODO_MARK}: ${hint} -->\n`);
   }
 
@@ -242,7 +274,10 @@ Stop reason: ${m.limits.stop_reason}; queue remaining: ${m.limits.queue_remainin
   writeGenerated(path.join(p.reports, 'unresolved-items.md'), `# Unresolved items
 
 ## Routes needing attention
-${list(routes.filter((r) => ['partial', 'failed', 'blocked', 'needs_verification', 'discovered', 'queued'].includes(r.status)).map((r) => `${r.id} \`${r.template}\` — ${r.status}${r.failure ? `: ${r.failure}` : ''}${r.notes?.length ? ` (${r.notes.slice(0, 2).join('; ')})` : ''}`))}
+${list(routes.filter((r) => !r.accepted && ['partial', 'failed', 'blocked', 'needs_verification', 'discovered', 'queued'].includes(r.status)).map((r) => `${r.id} \`${r.template}\` — ${r.status}${r.failure ? `: ${r.failure}` : ''}${r.notes?.length ? ` (${r.notes.slice(0, 2).join('; ')})` : ''}`))}
+
+## Accepted exceptions (expected failures, still listed)
+${list(routes.filter((r) => r.accepted).map((r) => `${r.id} \`${r.template}\` — ${r.status}: ${r.accepted.reason}`))}
 
 ## Documentation still to be written
 ${list(todos.map((t) => `${t.file}:${t.line} — ${t.text}`))}

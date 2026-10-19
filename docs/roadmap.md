@@ -11,6 +11,17 @@ Related: [architecture](architecture.md#implemented-versus-planned) · [crawler 
 3. Platform neutrality: the skill stays plain Markdown plus a Node CLI.
 4. Never add features whose purpose is to bypass CAPTCHA, MFA, paywalls, or rate limits. Those are out of scope permanently.
 
+## Implemented in 0.2.0 (unreleased)
+
+- Claude Code plugin packaging (`.claude-plugin/`) and `/webapplens:*` slash commands
+- `doctor --json` and `setup [--yes]` (preflight with ask-to-install)
+- Marketplace discovery: `discover-queries` and `references/marketplaces.json`
+- Public demo probing and single-attempt demo login with published credentials (`demo-probe`, `demo-login`)
+- Roundtable blackboard (`board post|read|decide|summary`) with `roundtable-moderator` and `skeptic` roles (sixteen roles in total)
+- Auto mode (`--profile quick|standard|deep|auto`, `--auto`) and `references/auto-mode.md`
+- `accept` for expected failed/blocked routes and `probe` for read-only extra pages
+- Research output moved to the hidden `.webapplens/docs/<AppName>/` folder
+
 ## Implemented (0.1.0)
 
 - Read-only, resumable Chromium crawler with mutation guard and scope policy

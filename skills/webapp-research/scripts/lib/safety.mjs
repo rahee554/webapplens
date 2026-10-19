@@ -26,7 +26,8 @@ export function classifyAction(label = '', ctx = {}) {
   else if (A_RE.test(text)) [cat, reason] = ['A', 'label suggests read-only interaction'];
   else [cat, reason] = ['B', 'unknown label; not assumed safe'];
 
-  if (ctx.type === 'submit') [cat, reason] = [worst(cat, 'B'), 'form submit control'];
+  // A submit button of a GET form (search/filter) only reads; any other submit may write.
+  if (ctx.type === 'submit' && !/^get$/i.test(ctx.method || '')) [cat, reason] = [worst(cat, 'B'), 'form submit control'];
   if (ctx.method && !/^(GET|HEAD|OPTIONS)$/i.test(ctx.method)) [cat, reason] = [worst(cat, 'B'), `HTTP ${ctx.method}`];
   return { category: cat, reason };
 }
@@ -37,3 +38,11 @@ export const isOpener = (label, ctx = {}) =>
   OPENER_RE.test(String(label).trim()) && ctx.type !== 'submit' && !C_RE.test(label);
 
 export const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
+
+/** True only if the body is parseable JSON whose every operation is a GraphQL query (no mutation/subscription). */
+export function isReadOnlyGraphql(body) {
+  let parsed;
+  try { parsed = JSON.parse(body || ''); } catch { return false; }
+  const ops = Array.isArray(parsed) ? parsed : [parsed];
+  return ops.length > 0 && ops.every((o) => o && typeof o.query === 'string' && !/(^|[\s}{)])(mutation|subscription)\b/i.test(o.query.replace(/#.*$/gm, '')));
+}

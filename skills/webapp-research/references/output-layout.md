@@ -1,4 +1,4 @@
-# Output layout (`docs/references/<AppName>/`)
+# Output layout (`.webapplens/docs/<AppName>/`)
 
 Owner: **tool** = written by the CLI during crawl · **gen** = rewritten by `report` (has `generated:webapp-research` marker) · **agent** = created once from a template with `TODO(agent)` markers, then yours.
 
@@ -26,7 +26,11 @@ crawlers/failures.json, run-manifest.json   tool
 evidence/observations.jsonl    tool/agents via `observe`
 evidence/network-summary.json  tool  XHR/fetch templates, per-route console/network errors, blocked requests
 reports/completeness.md, findings.md, unresolved-items.md   gen
+reports/roundtable.md          gen   `board summary` output (decisions, dissent, open items)
+roundtable/board.jsonl         tool/agents via `board post|decide` (append-only blackboard)
 logs/research.log              tool  redacted
 ```
 
 Route statuses: `discovered, queued, in_progress, explored, partial, blocked, failed, needs_verification`.
+
+Outside a project: `.webapplens/docs/_discovery/<host>-probe.json` (from `demo-probe`, git-ignored via `.webapplens/.gitignore`). `.webapplens/` is a hidden folder in the root of the project being researched; `--out DIR` changes the parent (default `.webapplens/docs`).

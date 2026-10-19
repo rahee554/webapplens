@@ -11,7 +11,7 @@ export const DEFINITIONS = {
   screenshot_coverage: 'explored routes (excluding pure redirects) with at least one existing screenshot file / those routes',
   documentation_coverage: 'explored routes referenced by at least one generated or authored doc that exists / explored routes',
   forms: 'forms inventoried (fields read from the DOM). "submit-tested" counts only forms actually submitted in an authorized sandbox',
-  controls: 'controls catalogued with a safety category (A/B/C). "exercised" counts controls actually clicked (tabs, menus, openers)',
+  controls: 'unique controls (role + label) catalogued with a safety category (A/B/C); repeated page chrome such as a nav toggle counts once. "exercised" counts unique controls actually clicked (tabs, menus, openers)',
   workflows: 'markdown files in docs/workflows/ (authored by the workflow analyst)',
   technical_docs: 'agent-owned technical docs with no unresolved TODO(agent) marker / total technical docs',
 };
@@ -30,10 +30,14 @@ export function computeCoverage(project) {
   const explored = by('explored');
   const partial = by('partial');
   const blocked = by('blocked');
-  const failed = by('failed');
+  const failedAll = by('failed');
+  const accepted = routes.filter((r) => r.accepted);
+  const failed = failedAll.filter((r) => !r.accepted); // accepted exceptions stay listed but are not open issues
   const remaining = routes.filter((r) => ['discovered', 'queued', 'in_progress'].includes(r.status));
 
-  const shootable = explored.filter((r) => !r.redirect_to);
+  const focus = cfg.focus?.length ? cfg.focus : ['full'];
+  const needShots = focus.includes('full') || focus.includes('screenshots');
+  const shootable = needShots ? explored.filter((r) => !r.redirect_to) : [];
   const withShot = shootable.filter((r) => r.screenshots.some((s) => fs.existsSync(path.join(p.dir, s))));
   const withDocs = explored.filter((r) => r.docs.some((d) => fs.existsSync(path.join(p.dir, d))));
 
@@ -46,7 +50,15 @@ export function computeCoverage(project) {
     return norm && !exploredTemplates.has(new URL(norm).origin + routeTemplate(norm));
   });
 
-  const allControls = Object.values(controls).flat();
+  const instances = Object.values(controls).flat();
+  const uniq = new Map();
+  for (const c of instances) {
+    const k = `${c.role}|${c.label}|${c.category}`;
+    const e = uniq.get(k) || { ...c, exercised: false };
+    e.exercised ||= c.exercised;
+    uniq.set(k, e);
+  }
+  const allControls = [...uniq.values()];
   const tdir = p.technicals;
   const techFiles = fs.existsSync(tdir) ? fs.readdirSync(tdir).filter((f) => f.endsWith('.md')) : [];
   const todos = scanTodos(p.dir);
@@ -56,16 +68,17 @@ export function computeCoverage(project) {
   const limitsHit = ['max_pages', 'time_budget', 'interrupted'].includes(state.stop_reason) || state.queue.length > 0;
   const m = {
     routes: {
-      total: routes.length, explored: explored.length, partial: partial.length, blocked: blocked.length, failed: failed.length, remaining: remaining.length,
+      total: routes.length, explored: explored.length, partial: partial.length, blocked: blocked.length, failed: failedAll.length, accepted: accepted.length, remaining: remaining.length,
       route_coverage_pct: pct(explored.length, routes.length),
       accessible_coverage_pct: pct(explored.length + partial.length, routes.length - blocked.length),
       sampled_variants_skipped: routes.reduce((n, r) => n + (r.skipped_variants || 0), 0),
     },
     screenshots: { required: shootable.length, covered: withShot.length, coverage_pct: pct(withShot.length, shootable.length), total_files: project.shots().length },
     documentation: { explored_routes_documented: withDocs.length, coverage_pct: pct(withDocs.length, explored.length) },
-    forms: { inventoried: forms.length, fields: forms.reduce((n, f) => n + f.fields.length, 0), submit_tested: forms.filter((f) => f.submit_tested).length },
+    forms: { inventoried: forms.filter((f) => f.kind !== 'action').length, action_forms: forms.filter((f) => f.kind === 'action').length, fields: forms.reduce((n, f) => n + f.fields.length, 0), submit_tested: forms.filter((f) => f.submit_tested).length },
     controls: {
       catalogued: allControls.length,
+      instances: instances.length,
       by_category: { A: allControls.filter((c) => c.category === 'A').length, B: allControls.filter((c) => c.category === 'B').length, C: allControls.filter((c) => c.category === 'C').length },
       exercised: allControls.filter((c) => c.exercised).length,
     },
@@ -85,11 +98,12 @@ export function computeCoverage(project) {
   if (limitsHit) issues.push(`Crawl stopped early (${state.stop_reason}); ${state.queue.length} URL(s) still queued. Resume with a higher limit.`);
   if (remaining.length) issues.push(`${remaining.length} route(s) discovered but not explored.`);
   if (unexplored_nav.length) issues.push(`${unexplored_nav.length} navigation target(s) not explored.`);
-  if (m.screenshots.coverage_pct !== null && m.screenshots.coverage_pct < 100) issues.push('Some explored routes lack a screenshot.');
+  if (needShots && m.screenshots.coverage_pct !== null && m.screenshots.coverage_pct < 100) issues.push('Some explored routes lack a screenshot.');
   if (m.documentation.coverage_pct !== null && m.documentation.coverage_pct < 100) issues.push('Some explored routes are not documented (run `report`).');
   if (m.forms.inventoried && !m.workflows.documented) issues.push('Forms exist but no workflow documents have been written.');
   if (todos.length) issues.push(`${todos.length} unresolved TODO(agent) marker(s) in documentation.`);
   if (partial.length + failed.length) issues.push(`${partial.length} partial and ${failed.length} failed route(s).`);
+  if (accepted.length) m.accepted_exceptions = accepted.map((r) => ({ id: r.id, template: r.template, reason: r.accepted.reason }));
 
   // Wording is deliberately conservative: a drained queue is not "fully explored".
   m.verdict = limitsHit || remaining.length

@@ -69,7 +69,7 @@ flowchart LR
 | Layer | Files | Responsibility |
 |---|---|---|
 | Entry point | `skills/webapp-research/SKILL.md` | Name and description (used for skill discovery), the workflow, non-negotiable rules |
-| Playbooks | `agents/*.md` (nine), `references/*.md` | Who does what, how to handle modes, safety, evidence |
+| Playbooks | `agents/*.md` (sixteen), `references/*.md` | Who does what, how to handle modes, safety, evidence |
 | CLI | `scripts/cli.mjs` | Argument parsing and dispatch; no business logic |
 | Browser | `lib/browser.mjs`, `lib/inspect.mjs` | Playwright session, mutation and scope guards, diagnostics, login; in-page DOM inventory |
 | Crawl | `lib/crawler.mjs`, `lib/routes.mjs`, `lib/scope.mjs`, `lib/safety.mjs` | Queue, visit loop, route registry, scope policy, A/B/C classification |
@@ -100,7 +100,7 @@ Dependency direction is one way: CLI to lib, lib modules to `util`/`redact`. `br
 | Generated and agent-owned documentation | Implemented |
 | Coverage metrics, verdict, link validation | Implemented |
 | Mode D weighted comparison | Implemented |
-| Nine role playbooks | Implemented |
+| Eleven role playbooks | Implemented |
 | Installer for Claude Code, Codex CLI, generic agent dirs | Implemented (see `scripts/install.mjs`) |
 | Unit and integration tests, CI | Implemented |
 | Firefox and WebKit | PLANNED |
@@ -120,3 +120,20 @@ Details and ordering are in the [roadmap](roadmap.md).
 - **One browser session.** Only `browser-reconnaissance` drives the crawler, so there is a single source of truth for state and no parallel mutation risk.
 - **Deterministic code for facts, agents for judgement.** Counting, coverage, and redaction are code. Naming workflows, reading UI patterns, and weighing technical evidence are agent work, labeled with evidence types.
 - **Platform neutrality.** The skill is plain Markdown plus a Node CLI. Role playbooks use Claude subagent frontmatter (`name`, `description`, `tools`) because it is simple and readable; other platforms can treat them as plain instructions.
+
+## Library modules added in 0.2.0
+
+| Module (`scripts/lib/`) | Responsibility |
+|---|---|
+| `intent.mjs` | Request -> facets, minimum plan, skipped work, open questions (deterministic rules, negation aware) |
+| `techstack.mjs`, `techdoc.mjs` | Passive tech-stack signals, ~60 signatures, confidence by independent signals, security-header observations |
+| `design.mjs` | Computed-style design scan, role inference (text-on-background pairs weighted by text mass), design doc and tokens |
+| `suggest.mjs` | Evidence-backed improvement suggestions from a11y/perf/design/security measurements |
+| `repo.mjs` | Local repository analysis (stack, routes, data model, env names); secret files never read |
+| `architect.mjs` | PROPOSED data model, API outline, starter schemas, baseline architecture |
+| `deliver.mjs` | Publish finished client docs to the project root; withhold drafts; never copy secrets |
+| `update.mjs` | Cached version check, update plans per install kind, backup outside the skills folder |
+| `status.mjs` | Compact project status for agents |
+| `board.mjs`, `discovery.mjs`, `setup.mjs`, `probe.mjs` | Roundtable blackboard, demo discovery/login, requirements preflight, read-only GET probe |
+
+`--focus` gates crawler work per facet; screenshot coverage is only demanded when screenshots were requested.

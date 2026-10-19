@@ -2,6 +2,32 @@
 
 All notable changes to this project are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - Unreleased
+
+### Added
+- **Claude Code plugin**: `.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json`; install with `/plugin marketplace add rahee554/webapplens` and `/plugin install webapplens@webapplens`.
+- **Slash commands** (`commands/`): `/webapplens:research`, `audit`, `discover`, `compare`, `roundtable`, `setup`, `status`.
+- **Preflight**: `doctor --json` (checks with fixes and an install plan) and `setup [--yes]`; agents tell the user what is missing, ask "May I install X?" and then install and continue (auto mode installs Playwright/Chromium automatically).
+- **Marketplace & demo discovery**: `discover-queries`, `references/marketplaces.json` and `references/marketplaces.md` (CodeCanyon/Envato, ThemeForest, GitHub, SourceForge, SaaS directories, app stores, vendor demos); `demo-probe` and `demo-login` (one login attempt, vendor-published credentials only, source URL and date recorded).
+- **Roundtable**: shared append-only blackboard (`roundtable/board.jsonl`) with `board post|read|decide|summary`, new roles `roundtable-moderator` and `skeptic`, `references/roundtable.md`, and a `## Communication` section in every role playbook.
+- **Auto mode**: `--profile quick|standard|deep|auto` and `--auto` on `init`/`crawl`; `references/auto-mode.md` (decision table and mandatory stops).
+- **Precise scope**: `intent "<request>"` maps a request to the minimum facets, commands, outputs, skipped work and open questions; `init/crawl --focus ...` runs only what was asked (no screenshots unless requested, no unrelated doc templates, no screenshot coverage demanded). Negation ("no screenshots") is understood. `status` gives a compact project state so agents do not re-read reports.
+- **UI & theme research** (`--focus ui`): computed-style scan -> `design-system-observed.md` and `design-tokens.json` (palette by frequency, type scale, spacing grid fit, radii, shadows, buttons/inputs/cards/tables, layout, breakpoints, CSS variables, dark mode, WCAG contrast estimate). Role names are inferred.
+- **Tech-stack detection** (`--focus stack`): ~60 passive signatures (headers, cookie names only, script URLs, meta, DOM markers, globals) -> `tech-stack.md`; every technology is an inferred observation with confidence by independent signals; passive security header and cookie-flag observations.
+- **Improvement suggester**: `suggest` -> `reports/suggestions.md` (accessibility, usability, design consistency, performance/reliability, passive security, outdated tech) with evidence, severity, effort and quick wins.
+- **Repo/folder analysis**: `repo-scan` (stack, routes from code, data model from migrations/Prisma/SQL/Django/Rails, Eloquent relations, env var names; never reads `.env`, keys or credentials).
+- **Architecture designer**: `architect` -> `proposed-schema.md` (PROPOSED entities, relations, CRUD API outline, starter schema for Laravel/Prisma/Django/SQL, ER diagram) and `architecture-baseline.md`.
+- **Client deliverables**: `deliver` publishes finished docs from the `.webapplens` workspace to `docs/research/<App>` in the project root, withholds unfinished docs, never copies credentials/state/logs/evidence, flags secret-looking text, validates links.
+- **Updates**: `VERSION` file, `update-check` (cached, silent offline, read-only), `update [--yes]` (plugin / git / copied installs), a plugin SessionStart hook, and a test that keeps all version files in sync (`scripts/sync-plugin.mjs`).
+- **Roles and commands**: five new roles (`ui-researcher`, `tech-stack-analyst`, `improvement-suggester`, `solution-architect`, `repo-analyst`; sixteen total) and slash commands `/webapplens:chat|ui|stack|suggest|architect|repo|deliver|update`; the interactive chat session (`references/interactive-session.md`, `intake.md`).
+- Dashboard tabs for Design (swatches, typography, buttons as rendered), Tech stack and Suggestions.
+- `accept` (mark expected failed/blocked routes) and `probe` (read-only extra pages through the saved session and mutation guard).
+
+### Changed
+- Default output location is now the hidden `.webapplens/docs/<AppName>/` in the root of the researched project (discovery probes in `.webapplens/docs/_discovery/`); `--out` still overrides the parent.
+- `SKILL.md` restructured (preflight, interaction mode, roundtable, marketplace discovery); role count is now sixteen.
+- README, user guide, agent design, roadmap and landing page updated for the above.
+
 ## [Unreleased]
 
 ### Added

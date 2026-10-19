@@ -9,7 +9,7 @@ A friendly, complete guide for business owners, designers and developers. If you
 1. [What WebAppLens is for](#1-what-webapplens-is-for)
 2. [Prerequisites](#2-prerequisites)
 3. [Installation](#3-installation)
-4. [Using it from your agent](#4-using-it-from-your-agent)
+4. [Using it from your agent](#4-using-it-from-your-agent) (slash commands, preflight, auto mode, marketplaces, roundtable)
 5. [Supplying credentials safely](#5-supplying-credentials-safely)
 6. [Running the CLI directly](#6-running-the-cli-directly)
 7. [Reading the output folder](#7-reading-the-output-folder)
@@ -24,7 +24,7 @@ A friendly, complete guide for business owners, designers and developers. If you
 
 ## 1. What WebAppLens is for
 
-WebAppLens is a **platform-neutral agent skill** (`skills/webapp-research/`: a `SKILL.md`, a Node command-line tool, and nine role playbooks in `skills/webapp-research/agents/`). It works as a Claude Code skill with nine subagents, with OpenAI Codex CLI, and with any other coding agent that can read a Markdown instruction file and run shell commands. Together they study a web application the way a careful analyst would: they open it, click around safely, take screenshots, list every page, form and button, and then write up what they found.
+WebAppLens is a **platform-neutral agent skill** (`skills/webapp-research/`: a `SKILL.md`, a Node command-line tool, and sixteen role playbooks in `skills/webapp-research/agents/`). It works as a Claude Code plugin or skill with role subagents, with OpenAI Codex CLI, and with any other coding agent that can read a Markdown instruction file and run shell commands. Together they study a web application the way a careful analyst would: they open it, click around safely, take screenshots, list every page, form and button, and then write up what they found.
 
 The result is two layers of documentation:
 
@@ -68,7 +68,8 @@ WebAppLens is **platform-neutral**: the skill is plain Markdown plus a Node CLI.
 ```
 skills/webapp-research/
   SKILL.md        the instructions any agent reads first
-  agents/         nine role playbooks (research-orchestrator.md, browser-reconnaissance.md, ...)
+  agents/         sixteen role playbooks (research-orchestrator.md, skeptic.md, roundtable-moderator.md, ...)
+  references/     auto-mode.md, roundtable.md, marketplaces.md/.json, modes, safety, evidence, ...
   scripts/        cli.mjs and its libraries
   package.json    the single dependency (playwright)
 ```
@@ -104,7 +105,17 @@ cd <installed skill folder> && npm install && npx playwright install chromium &&
 
 **What is tested.** The installer's Claude Code and generic/Codex layouts are covered by this repository's tests. Other platforms' conventions change over time and were not tested; for them use the generic route (3c).
 
-### 3a. Claude Code
+### 3.0 Claude Code plugin (recommended for Claude Code)
+
+```text
+/plugin marketplace add rahee554/webapplens
+/plugin install webapplens@webapplens
+/webapplens:setup
+```
+
+The plugin bundles the slash commands (`commands/`), the `webapp-research` skill and the role subagents. `/webapplens:setup` runs the requirements check and, with your OK, installs what is missing (see [Preflight](#preflight-and-one-command-setup)). The sections below are for installing without the plugin.
+
+### 3a. Claude Code (manual install)
 
 **Project-level** (only that project can use it): from your project root,
 
@@ -118,7 +129,7 @@ node scripts/cli.mjs doctor
 
 **User-level** (every project): `node /path/to/webapplens/scripts/install.mjs --platform claude --scope user`, then run the `cd ~/.claude/skills/webapp-research` sequence above from there.
 
-Or manually: copy `skills/webapp-research/` to `.claude/skills/webapp-research/` and the nine files from `skills/webapp-research/agents/` to `.claude/agents/`.
+Or manually: copy `skills/webapp-research/` to `.claude/skills/webapp-research/` and the files from `skills/webapp-research/agents/` to `.claude/agents/`.
 
 Alternatively, run Claude Code inside a clone of this repository after `node scripts/install.mjs --platform claude` there.
 
@@ -233,7 +244,7 @@ Open your agent in the project where you installed the skill and describe the jo
 
 ### How the roles are driven
 
-The work is split into nine roles, each described in `skills/webapp-research/agents/<role>.md`: `research-orchestrator`, `product-discovery`, `demo-access-researcher`, `browser-reconnaissance`, `workflow-analyst`, `ui-ux-analyst`, `technical-analyst`, `documentation-engineer` and `completeness-auditor`.
+The work is split into sixteen roles, each described in `skills/webapp-research/agents/<role>.md`: `research-orchestrator`, `product-discovery`, `demo-access-researcher`, `browser-reconnaissance`, `workflow-analyst`, `ui-ux-analyst`, `technical-analyst`, `documentation-engineer`, `completeness-auditor`, `roundtable-moderator`, `skeptic`, `ui-researcher`, `tech-stack-analyst`, `improvement-suggester`, `solution-architect` and `repo-analyst`. Every role reads the shared blackboard before it starts and posts a hand-off when it is done (see [Roundtable](#roundtable)).
 
 - **Claude Code (with subagents).** The installer copies the role files to `.claude/agents/`. Claude Code subagents cannot start other subagents, so the **main Claude session** (or a session started with `claude --agent research-orchestrator`) acts as the orchestrator and hands independent work to the specialists. Only `browser-reconnaissance` drives the crawler, so there is one browser session at a time.
 - **Platforms without subagents (Codex, Cursor, Gemini CLI, Aider, ...).** The **single agent plays each role in sequence**: it reads `agents/research-orchestrator.md` to plan the job, then reads the matching role file as it reaches each step (discovery, reconnaissance, workflow analysis, UI analysis, technical analysis, documentation, completeness audit) and does that role's work itself before moving on. Nothing is lost except parallelism; the CLI, the evidence rules and the completeness audit are identical.
@@ -246,6 +257,67 @@ The work is split into nine roles, each described in `skills/webapp-research/age
 | **B. Topic or module across products** | You care about one capability (say, approval workflows or invoicing), not one product. | `Research how SaaS HR tools handle leave requests. Pick three products with accessible demos and document the leave-request flow in each.` |
 | **C. Your credentials** | You have a test account for an app you are allowed to explore. | `Explore https://staging.acme.test with my test account. The username and password are in env vars ACME_USERNAME and ACME_PASSWORD. Do not submit any forms.` |
 | **D. Discover and compare** | You do not know which product to study yet. | `Find open-source CRMs with a free public demo. Rank them for research suitability and show the scoring.` |
+
+### Slash commands (Claude Code plugin)
+
+| Command | Use it to |
+|---|---|
+| `/webapplens:research <url \| product \| topic> [--auto] [--profile quick\|standard\|deep\|auto]` | Run a full research job. The mode (A to D) is inferred from your arguments. |
+| `/webapplens:audit <App \| dir>` | Run the completeness audit plus a skeptic pass on an existing project. |
+| `/webapplens:discover <topic> [--marketplaces id,id]` | Find products and public demos (including marketplaces) and verify published demo credentials with one login attempt. |
+| `/webapplens:compare <topic \| candidates.json> [--top N]` | Mode D scoring and ranking. |
+| `/webapplens:roundtable <App \| dir>` | Convene the blackboard rounds (analysis, cross-review, decisions) on an existing project. |
+| `/webapplens:setup [--yes]` | Check requirements and install what is missing after asking. |
+| `/webapplens:status [App \| dir]` | Show state, coverage per metric and open board items. |
+
+On other agents there are no slash commands: say what you want in plain language and the agent follows `SKILL.md`.
+
+### Preflight and one-command setup
+
+Before the first run the agent calls `doctor --json`. If something is missing it does not just stop: it tells you exactly what is missing, shows the install commands and asks **"May I install X?"**. After your yes it runs `setup --yes` (which does `npm install --omit=dev` in the skill folder and `npx playwright install chromium`, then re-verifies) and continues. In auto mode it installs Playwright and Chromium without asking. A missing or too-old Node is never installed for you: you get the fix instructions. By hand:
+
+```bash
+webapp-research doctor --json      # {ok, checks:[{id,ok,detail,fix}], install_plan:[commands]}
+webapp-research setup              # prints the plan only
+webapp-research setup --yes        # installs, then re-verifies
+```
+
+### Interactive and auto mode
+
+Interactive is the default: the agent asks at decision points (sandbox or production, scope, crawl profile, installs, trying published demo credentials, extra roundtable rounds). Auto mode (`--auto`, or tell the agent "auto") uses the recommended settings, equivalent to `--profile auto`: deep limits, dialog openers, responsive captures and tabs on, read-only GraphQL queries allowed, and automatic re-crawl rounds while a limit was the stop reason.
+
+Auto mode still stops and asks for: missing credentials, CAPTCHA or MFA, any Category B or C action, authorization or legal ambiguity, and installing software that was not pre-authorized. It records the assumptions it made in the final report. The full decision table is in [`references/auto-mode.md`](../skills/webapp-research/references/auto-mode.md).
+
+### Marketplace and demo discovery
+
+Modes A, B and D also search marketplaces for products and their public demos: CodeCanyon/Envato and ThemeForest live previews, SaaS directories (G2, Capterra, Product Hunt, AlternativeTo), open-source catalogues (GitHub, SourceForge), WordPress, Shopify and Odoo app stores, AppSumo and vendor sites.
+
+```bash
+webapp-research discover-queries "school management" --marketplaces codecanyon,github,vendor-demo --json
+webapp-research demo-probe https://demo.example.com/login          # writes .webapplens/docs/_discovery/demo.example.com-probe.json
+webapp-research demo-login .webapplens/docs/_discovery/demo.example.com-probe.json --index 0 --save-to SchoolDemo
+```
+
+The agent runs the printed queries with its web-search tool. The probe records, from public visible text only, the login form, CAPTCHA/MFA presence, demo links and any demo credentials with the page they came from. `demo-login` makes **exactly one** attempt, refuses when CAPTCHA or MFA is present, and with `--save-to` stores the verified credentials in that project's git-ignored `credentials.json` with source URL, verification status and date.
+
+Rules: public pages only; respect robots and each site's terms; only vendor- or marketplace-published demo credentials; never guessed, never from leaked lists, never past CAPTCHA/MFA; credentials never leave the project. Details: [`references/marketplaces.md`](../skills/webapp-research/references/marketplaces.md).
+
+### Roundtable
+
+The roundtable is how agents collaborate. They share an append-only blackboard at `<project>/roundtable/board.jsonl`:
+
+1. **Independent analysis**: each analyst posts findings (`evidence`, `proposal`) without reading the others first.
+2. **Cross-review and objections**: everyone reads the board; the `skeptic` challenges claims, evidence types and confidence; owners `answer`.
+3. **Synthesis and decisions**: the `roundtable-moderator` closes every open item with a `decision` and records `dissent` instead of hiding disagreement.
+
+```bash
+webapp-research board post Acme --role skeptic --type objection --to technical-analyst --text "Multi-tenancy is stated as fact; evidence?"
+webapp-research board read Acme --open          # unanswered questions and objections
+webapp-research board decide Acme --ref 4 --decision "Label as hypothesis, low" --dissent skeptic
+webapp-research board summary Acme              # writes reports/roundtable.md
+```
+
+Run it with `/webapplens:roundtable <App>` or as part of `/webapplens:research`. Protocol and an example transcript: [`references/roundtable.md`](../skills/webapp-research/references/roundtable.md).
 
 ### Mode D scoring
 
@@ -320,7 +392,7 @@ Use a **test or demo account** with the least privilege that is useful. Never us
 
 ## 6. Running the CLI directly
 
-The CLI is `node skills/webapp-research/scripts/cli.mjs <command>` (inside this repository; after an installer run use the installed path instead, for example `node .claude/skills/webapp-research/scripts/cli.mjs`, `.codex/skills/...` or `.agents/skills/...`). In the examples below it is shortened to `webapp-research`. Commands write into `docs/references/` by default; change that with `--out <dir>` (a global option). Run the commands from the folder where you want that directory to live.
+The CLI is `node skills/webapp-research/scripts/cli.mjs <command>` (inside this repository; after an installer run use the installed path instead, for example `node .claude/skills/webapp-research/scripts/cli.mjs`, `.codex/skills/...` or `.agents/skills/...`). In the examples below it is shortened to `webapp-research`. Commands write into `.webapplens/docs/` by default; change that with `--out <dir>` (a global option). Run the commands from the folder where you want that directory to live.
 
 ```bash
 alias webapp-research='node skills/webapp-research/scripts/cli.mjs'
@@ -330,15 +402,61 @@ alias webapp-research='node skills/webapp-research/scripts/cli.mjs'
 
 ### doctor
 
-Checks Node, Playwright and launches a real Chromium page.
+Checks Node (22 or newer), the Playwright module and launches a real Chromium page. With `--json` it prints `{ok, checks:[{id,ok,detail,fix}], install_plan:[shell commands]}`.
 
 ```bash
 webapp-research doctor
+webapp-research doctor --json
+```
+
+### setup
+
+Prints the install plan. With `--yes` it runs `npm install --omit=dev` in the skill folder and `npx playwright install chromium`, then re-verifies. Without `--yes` it installs nothing: the agent must ask you first (unless in auto mode).
+
+```bash
+webapp-research setup [--yes] [--json]
+```
+
+### discover-queries, demo-probe, demo-login
+
+```bash
+webapp-research discover-queries "<topic>" [--marketplaces id,id] [--json]   # queries from references/marketplaces.json
+webapp-research demo-probe <url> [--out DIR]                                  # default out .webapplens/docs
+webapp-research demo-login <probe.json> [--index N] [--save-to <App|dir>]     # one login attempt; prints {ok, reason}
+```
+
+See [Marketplace and demo discovery](#marketplace-and-demo-discovery).
+
+### board
+
+```bash
+webapp-research board post <App|dir> --role R --type proposal|objection|evidence|question|answer|decision|handoff|dissent --text "..." [--to role] [--ref ID] [--round N]
+webapp-research board read <App|dir> [--role R] [--since N] [--open]
+webapp-research board decide <App|dir> --ref ID --decision "..." [--dissent role]
+webapp-research board summary <App|dir>
+```
+
+The blackboard file is `<project>/roundtable/board.jsonl`. `--open` shows unanswered questions and objections.
+
+### accept
+
+Marks an expected failed or blocked route (for example a genuine dead link) as accepted, so it no longer counts as an open issue but stays listed.
+
+```bash
+webapp-research accept Acme R031 --reason "genuine 404: dead link in the footer"
+```
+
+### probe
+
+Read-only GET of extra pages through the saved session and the mutation guard. This is the safe way to inspect pages the crawl missed; do not hand-write browser scripts.
+
+```bash
+webapp-research probe Acme https://app.acme.test/reports/12 --screenshot --text
 ```
 
 ### init
 
-Creates `docs/references/<AppName>/` with config, empty registries and a credentials template.
+Creates `.webapplens/docs/<AppName>/` with config, empty registries and a credentials template.
 
 ```bash
 webapp-research init DemoShop --url http://127.0.0.1:4310
@@ -350,7 +468,7 @@ webapp-research init Acme --url https://staging.acme.test --mode C --scope "Sale
 | Flag | Meaning |
 |---|---|
 | `--url` | Base URL (required). |
-| `--out` | Parent folder for research projects (default `docs/references`). |
+| `--out` | Parent folder for research projects (default `.webapplens/docs`). |
 | `--mode A\|B\|C\|D` | Research mode label stored in the manifest (default `C`). |
 | `--scope "text"` | Human-readable scope, stored in the manifest. |
 | `--username-env`, `--password-env` | Names of env vars holding the credentials. |
@@ -378,6 +496,8 @@ webapp-research crawl Sandbox --sandbox        # only for environments you may m
 | `--max-depth N` | Link depth from the start page (default 4). |
 | `--max-per-template N` | Examples visited per dynamic route such as `/customers/:id` (default 3). |
 | `--time-budget SEC` | Time limit per run (default 900). |
+| `--profile quick\|standard\|deep\|auto` | Choose a limit set. `auto` = recommended settings: deep limits, openers + responsive + tabs on, read-only GraphQL queries allowed, automatic re-crawl rounds while a limit was the stop reason. Also accepted by `init`. |
+| `--auto` | Alias of `--profile auto`. |
 | `--probe-openers` | Also click "Add / New / Create / Edit / Filters" buttons to reveal dialogs. Off by default. POSTs stay blocked. |
 | `--responsive` | Also capture a mobile-size screenshot for a few routes. |
 | `--headed` | Show the browser window (useful for watching it work). |
@@ -479,7 +599,7 @@ Scores are 0 to 5. You may add a `"weights"` object to change the defaults (35/2
 Checks that relative Markdown links in a folder are not broken.
 
 ```bash
-webapp-research validate-links docs/references/DemoShop
+webapp-research validate-links .webapplens/docs/DemoShop
 ```
 
 Prints `N links checked, M broken` and exits with code 1 if any are broken.
@@ -488,7 +608,7 @@ Prints `N links checked, M broken` and exits with code 1 if any are broken.
 
 ## 7. Reading the output folder
 
-Everything for one app lives in `docs/references/<AppName>/`. Generate a ready example with `npm run demo` (writes `examples/research/DemoShop/`, git-ignored). To be clear about it: that folder is **real output of the tool**, but of a **small fixture app we built for the test suite** (`tests/fixtures/demo-app`), not a real product. Use it to see the shape of the results, not as research about any actual software.
+Everything for one app lives in `.webapplens/docs/<AppName>/`. `.webapplens/` is a hidden folder in the root of the project you are researching from; commit it or ignore it as you prefer (the CLI writes `.webapplens/.gitignore` for `_discovery/`, `**/.secrets/` and `**/credentials.json`). The roundtable blackboard is `roundtable/board.jsonl` and its summary `reports/roundtable.md`. Generate a ready example with `npm run demo` (writes `examples/research/DemoShop/`, git-ignored). To be clear about it: that folder is **real output of the tool**, but of a **small fixture app we built for the test suite** (`tests/fixtures/demo-app`), not a real product. Use it to see the shape of the results, not as research about any actual software.
 
 ### The interactive dashboard (`dashboard.html`)
 
@@ -583,7 +703,7 @@ webapp-research crawl Acme --max-pages 400 --time-budget 3600
 | Examples per dynamic route | `--max-per-template` | 3 |
 | Time per run (seconds) | `--time-budget` | 900 |
 
-Command-line limits apply to that run. For permanent changes, or for options that have no flag (delay between pages, navigation timeout, viewport, login selectors, `maxOpenersPerPage`, retries), edit `docs/references/<AppName>/crawlers/config.json`. If login fails on an unusual form, set `auth.userSelector`, `auth.passwordSelector` and `auth.submitSelector` there.
+Command-line limits apply to that run. For permanent changes, or for options that have no flag (delay between pages, navigation timeout, viewport, login selectors, `maxOpenersPerPage`, retries), edit `.webapplens/docs/<AppName>/crawlers/config.json`. If login fails on an unusual form, set `auth.userSelector`, `auth.passwordSelector` and `auth.submitSelector` there.
 
 **Large sites.** Start small (`--max-pages 50`), read the route inventory, then use `--exclude` to skip noisy areas (help centres, exports, blogs) and raise the limit.
 
@@ -634,7 +754,7 @@ Try it: `webapp-research classify "Place order"`.
 | Huge site, crawl crawling forever | Too many sections. | Start with `--max-pages 50`, then `--exclude` noisy paths. |
 | Few routes in a single-page app | Navigation uses non-semantic click targets (divs). | Expected limitation. Add `--probe-openers`, add known URLs to `startPaths` in `config.json`, and note gaps in the report. |
 | Windows `EPERM` / `EBUSY` / path-too-long | A terminal or editor has the folder open, antivirus is scanning, or the path is very long. | Close programs using the folder, run from a shorter path (such as `C:\work\`), re-run. Do not `cd` into a folder you are about to delete. |
-| `Not a research project` | Wrong working directory or name. | Run from the folder that contains `docs/references/`, or pass the full directory, or use `--out`. |
+| `Not a research project` | Wrong working directory or name. | Run from the folder that contains `.webapplens/docs/`, or pass the full directory, or use `--out`. |
 | Screenshots look blank | Page needed more time to render. | Raise `navTimeoutMs`/`delayMs` in `config.json`. |
 
 ---
@@ -657,7 +777,7 @@ Not in normal runs: every non-GET request is blocked in the browser and delete/l
 Never. Coverage is split into separate metrics and the verdict avoids "fully explored". Dynamic routes are sampled, and forms are not submit-tested outside a sandbox.
 
 **Can I share the research folder?**
-Read it first. Screenshots are **not redacted at pixel level**, so they can contain personal data from the app. `.secrets/` and `credentials.json` are git-ignored; `docs/references/*/` is git-ignored by default in this repo so real research is not committed accidentally.
+Read it first. Screenshots are **not redacted at pixel level**, so they can contain personal data from the app. `.secrets/` and `credentials.json` are git-ignored; the research output in `.webapplens/docs/` is yours to commit or ignore; review screenshots before committing.
 
 **Can I run it on a schedule or in CI?**
 Yes for the CLI: `audit --strict` exits with code 1 when issues are open, and `validate-links` exits 1 on broken links.
@@ -699,3 +819,25 @@ There is none. Everything is JSON, JSONL and Markdown files that you can diff an
 ## 13. Contributing
 
 Want to improve WebAppLens? See [CONTRIBUTING.md](../CONTRIBUTING.md) for how to set up, run the tests and submit changes.
+
+## Precise scope, specialist research and delivery (0.2.0)
+
+**Precise scope.** `intent "<request>"` prints the minimum facets, commands, outputs, what is skipped and the questions still worth asking. `init`/`crawl --focus ui,stack,screenshots,forms,workflows,data-model,api,architecture,suggestions,docs` runs only those scans (default `full`). Example: "only UI colours and tech stack, no screenshots" -> `--focus ui,stack`, no screenshots captured, no screenshot coverage demanded.
+
+**Interactive chat.** `/webapplens:chat` asks a short batch of questions, works one stage at a time and checkpoints with 2-4 next-step options until you say done. `--auto` decides with recommended defaults and still stops for credentials, CAPTCHA/MFA, risky actions and authorization questions. `wr status "<App>"` resumes or recaps cheaply.
+
+**Specialist commands.**
+
+| Command | Result |
+|---|---|
+| `wr suggest "<App>"` | `reports/suggestions.md` and `evidence/suggestions.json` |
+| `wr architect "<App>" --stack laravel\|prisma\|django\|sql\|auto` | `docs/technicals/proposed-schema.md`, `architecture-baseline.md` (PROPOSED) |
+| `wr repo-scan <folder> --name "<App>"` | `docs/repo/*.md`, `evidence/repo-scan.json` |
+| `wr deliver "<App>" [--to DIR] [--include-drafts] [--no-dashboard]` | client-ready docs in `docs/research/<App>` |
+| `wr update-check [--force] [--json] [--quiet]`, `wr update [--yes]` | version check / update |
+
+**UI and stack research** happen during `crawl` (focus `ui` / `stack`) and appear as `docs/technicals/design-system-observed.md`, `design-tokens.json`, `tech-stack.md` and as Design / Tech stack / Suggestions tabs in `dashboard.html`. The design scan samples computed styles; colour roles are inferred. Stack detection is passive and every technology is inferred.
+
+**Workspace vs deliverables.** `.webapplens/` holds the agent's state, evidence, drafts and credential references. `deliver` copies only finished docs (no `TODO(agent)` markers), screenshots, the suggestions and coverage reports and the dashboard into your project root, rebuilds README/index for exactly that set, flags secret-looking text for review and validates links.
+
+**Updating.** Plugin: `/plugin marketplace update webapplens` then `/plugin update webapplens@webapplens`. Other installs: the agent runs `update-check`, tells you, and asks before `update --yes` (git installs `git pull --ff-only`; copied installs are backed up to `~/.webapplens/backups`, refreshed, and `npm install` is re-run).

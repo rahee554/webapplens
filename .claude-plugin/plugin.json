@@ -1,0 +1,41 @@
+{
+  "name": "webapplens",
+  "version": "0.2.0",
+  "description": "Research web applications safely and with evidence: read-only Playwright crawler, marketplace and demo discovery, a multi-agent roundtable, and plain-English plus technical documentation.",
+  "author": {
+    "name": "Raheel Ahmad",
+    "url": "https://artflow.pk"
+  },
+  "license": "MIT",
+  "repository": "https://github.com/rahee554/webapplens",
+  "keywords": [
+    "web-research",
+    "playwright",
+    "crawler",
+    "documentation",
+    "competitor-analysis",
+    "demo-discovery",
+    "multi-agent",
+    "skill"
+  ],
+  "commands": "./commands",
+  "skills": "./skills",
+  "agents": [
+    "./skills/webapp-research/agents/browser-reconnaissance.md",
+    "./skills/webapp-research/agents/completeness-auditor.md",
+    "./skills/webapp-research/agents/demo-access-researcher.md",
+    "./skills/webapp-research/agents/documentation-engineer.md",
+    "./skills/webapp-research/agents/improvement-suggester.md",
+    "./skills/webapp-research/agents/product-discovery.md",
+    "./skills/webapp-research/agents/repo-analyst.md",
+    "./skills/webapp-research/agents/research-orchestrator.md",
+    "./skills/webapp-research/agents/roundtable-moderator.md",
+    "./skills/webapp-research/agents/skeptic.md",
+    "./skills/webapp-research/agents/solution-architect.md",
+    "./skills/webapp-research/agents/tech-stack-analyst.md",
+    "./skills/webapp-research/agents/technical-analyst.md",
+    "./skills/webapp-research/agents/ui-researcher.md",
+    "./skills/webapp-research/agents/ui-ux-analyst.md",
+    "./skills/webapp-research/agents/workflow-analyst.md"
+  ]
+}

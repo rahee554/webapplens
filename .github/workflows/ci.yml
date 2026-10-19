@@ -67,3 +67,5 @@ jobs:
           }
           console.log('skill metadata ok');
           "
+      - name: Plugin manifests are in sync (version + role list)
+        run: node scripts/sync-plugin.mjs --check

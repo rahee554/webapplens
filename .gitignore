@@ -32,6 +32,9 @@ docs/references/*/
 # (the two README images in assets/ are the only demo screenshots that are committed)
 examples/research/
 
+# Agent workspace created by the skill when run inside this repo
+.webapplens/
+
 # Test / temp output
 *.tmp
 tmp/

@@ -12,7 +12,7 @@ Related: [setup](setup.md) · [crawler design](crawler-design.md) · [security](
 | `Executable doesn't exist` / browser not installed | Chromium not downloaded | `npx playwright install chromium` |
 | Browser fails to start on Linux or in a container | Missing system libraries | `npx playwright install --with-deps chromium` |
 | `doctor` reports `FAIL node` | Node too old | Install Node 22 or newer. (`doctor` currently accepts 20, but the project requires 22; tests and CI use 22.) |
-| `Not a research project` | Wrong directory or name | Run from the folder that contains `docs/references/`, pass the full project directory, or use `--out` |
+| `Not a research project` | Wrong directory or name | Run from the folder that contains `.webapplens/docs/`, pass the full project directory, or use `--out` |
 | `EPERM` / `EBUSY` deleting a research folder (Windows) | A shell or editor has it open | Leave the folder, close programs using it, retry |
 
 ## Login

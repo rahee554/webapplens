@@ -100,6 +100,7 @@ export function inPageInspect() {
     type: el.tagName === 'BUTTON' || el.tagName === 'INPUT' ? (el.form ? el.type : el.getAttribute('type')) : null,
     disabled: !!el.disabled || el.getAttribute('aria-disabled') === 'true',
     in_form: !!el.closest('form'),
+    form_method: el.form ? (el.form.getAttribute('method') || 'get').toUpperCase() : null,
     in_dialog: !!el.closest('[role=dialog],[role=alertdialog],dialog'),
     nav: inNav(el),
     expanded: el.getAttribute('aria-expanded'),
@@ -142,6 +143,11 @@ export function inPageInspect() {
     .filter(isVisible)
     .map((d) => ({ label: clean(d.getAttribute('aria-label') || d.querySelector('h1,h2,h3,h4')?.innerText), fields: fieldEls(d).length }));
 
+  const lists = Array.from(document.querySelectorAll('main ul, main ol, [role=main] ul, [role=main] ol, body > ul, body > ol'))
+    .filter((l) => !l.closest('nav,aside,[role=navigation],[role=tablist]') && isVisible(l)).slice(0, 10)
+    .map((l) => ({ items: l.querySelectorAll(':scope > li').length, sample: Array.from(l.querySelectorAll(':scope > li')).slice(0, 5).map((li) => clean(li.innerText)) }))
+    .filter((l) => l.items > 0);
+
   const scripts = Array.from(document.scripts).map((s) => s.src).filter(Boolean);
   const hosts = [...new Set(scripts.map((s) => { try { return new URL(s).host; } catch { return null; } }).filter(Boolean))].slice(0, 15);
   const tech = {
@@ -154,12 +160,30 @@ export function inPageInspect() {
     script_hosts: hosts,
   };
 
+  // quick accessibility counts (heuristics for the improvement suggester)
+  const labelled = (f) => (f.labels && f.labels.length) || f.getAttribute('aria-label') || f.getAttribute('aria-labelledby') || f.getAttribute('title');
+  const ids = {}; document.querySelectorAll('[id]').forEach((e) => { ids[e.id] = (ids[e.id] || 0) + 1; });
+  const a11y = {
+    images_no_alt: document.querySelectorAll('img:not([alt])').length,
+    inputs_no_label: fieldEls(document.body).filter((f) => isVisible(f) && !labelled(f)).length,
+    buttons_no_name: controls.filter((c) => c.role === 'button' && c.visible && !c.label).length,
+    links_no_name: links.filter((l) => l.visible && !l.text).length,
+    h1_count: document.querySelectorAll('h1').length,
+    has_lang: !!document.documentElement.lang,
+    has_viewport: !!document.querySelector('meta[name=viewport]'),
+    has_main: !!document.querySelector('main,[role=main]'),
+    title_empty: !document.title.trim(),
+    tables_no_headers: Array.from(document.querySelectorAll('table')).filter((t) => !t.querySelector('th')).length,
+    duplicate_ids: Object.values(ids).filter((n) => n > 1).length,
+    positive_tabindex: document.querySelectorAll('[tabindex]:not([tabindex="0"]):not([tabindex^="-"])').length,
+  };
+
   return {
     url: location.href,
     title: document.title,
     headings: Array.from(document.querySelectorAll('h1,h2')).slice(0, 10).map((h) => clean(h.innerText)).filter(Boolean),
     breadcrumbs: Array.from(document.querySelectorAll('[aria-label*=breadcrumb i] li,.breadcrumb li')).map((x) => clean(x.innerText)).filter(Boolean),
-    links, controls, forms, loose_fields: loose, tables, pagination, dialogs, tech,
+    links, controls, forms, loose_fields: loose, tables, lists, pagination, dialogs, tech, a11y,
     has_search: !!document.querySelector('input[type=search],[role=search] input,input[name=q],input[placeholder*=search i]'),
   };
 }

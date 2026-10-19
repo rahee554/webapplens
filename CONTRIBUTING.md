@@ -73,7 +73,7 @@ More background: [setup guide](docs/setup.md).
 ```
 skills/webapp-research/         the canonical skill (this is what users install)
   SKILL.md                      entry point: name + description frontmatter, workflow, non-negotiables
-  agents/*.md                   nine role playbooks (Claude subagent frontmatter: name, description, tools)
+  agents/*.md                   sixteen role playbooks (Claude subagent frontmatter: name, description, tools)
   references/*.md               modes, crawler, safety, evidence, output-layout
   templates/                    input templates (Mode D candidates.json)
   scripts/cli.mjs               CLI entry point
@@ -140,7 +140,7 @@ node skills/webapp-research/scripts/cli.mjs report FixtureTry --out ./tmp
 node skills/webapp-research/scripts/cli.mjs audit FixtureTry --out ./tmp
 ```
 
-`tmp/` is git-ignored. Delete your scratch output before committing, and do not commit anything under `docs/references/` (ignored by default).
+`tmp/` is git-ignored. Delete your scratch output before committing, and do not commit research output under `.webapplens/docs/`.
 
 ## How to add things
 
@@ -179,7 +179,7 @@ Safety rules live in `lib/safety.mjs` (A/B/C label classification, openers), `li
 
 1. Create `skills/webapp-research/agents/<role>.md` with frontmatter `name`, `description` (what it does and when to use it), and `tools` (the minimum needed; only the orchestrator gets `Agent`).
 2. Write the playbook: inputs it reads, files it owns, what it must not do, how it records evidence. Match the style of the existing roles. See [agent design](docs/agent-design.md).
-3. Add it to the pipeline description in `SKILL.md` section 2 and to `agents/research-orchestrator.md`.
+3. Add it to the pipeline description in `SKILL.md` section 3 and to `agents/research-orchestrator.md`.
 4. Only `browser-reconnaissance` may drive the crawler or a browser; analysis roles read artifacts.
 5. Make sure the installer copies it (agents are copied for Claude Code).
 

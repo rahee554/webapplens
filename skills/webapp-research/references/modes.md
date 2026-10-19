@@ -14,7 +14,7 @@
 ## Mode C — credentialed app
 1. Confirm: URL, scope, role of the account, **sandbox or production** (default: production, read-only).
 2. `init` with `--username-env/--password-env`; user exports the variables. Alternative: `--credentials-file` (git-ignored JSON `{"username":"…","password":"…"}`).
-3. `crawl` → `report` → loop (see SKILL.md §4). For SPAs with POST-based reads (GraphQL/JSON-RPC) add `--allow-post "graphql"` etc.; this is the only supported way to let POSTs through without `--sandbox`.
+3. `crawl` → `report` → loop (see SKILL.md §7). For SPAs with POST-based reads (GraphQL/JSON-RPC) add `--allow-post "graphql"` etc.; this is the only supported way to let POSTs through without `--sandbox`.
 4. Login problems: set `auth.loginPath`, `auth.userSelector`, `auth.passwordSelector`, `auth.submitSelector` in `crawlers/config.json`. CAPTCHA/MFA → ask the user for an authenticated session or a test account without it; never bypass.
 
 ## Mode D — discover & compare

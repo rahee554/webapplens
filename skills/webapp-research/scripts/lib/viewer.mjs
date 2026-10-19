@@ -6,6 +6,8 @@ import { fileURLToPath } from 'node:url';
 import { DEFINITIONS, fullAudit } from './coverage.mjs';
 import { scanTodos } from './links.mjs';
 import { readJson, writeText } from './util.mjs';
+import { inferRoles } from './design.mjs';
+import { detectStack, newTechAcc, securityObservations, summarizeStack } from './techstack.mjs';
 
 const TEMPLATE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', 'templates', 'dashboard.template.html');
 
@@ -26,6 +28,18 @@ function docList(project) {
     if (fs.existsSync(d)) for (const f of fs.readdirSync(d).sort()) if (f.endsWith('.md')) add(`${dir}/${f}`, kind);
   }
   return out;
+}
+
+const top = (m, n = 10) => Object.entries(m || {}).sort((a, b) => b[1] - a[1]).slice(0, n);
+
+function extras(project) {
+  const d = readJson(project.p.designTokens, null);
+  const t = readJson(project.p.techStack, null);
+  const sg = readJson(project.p.suggestions, null);
+  const design = d && d.pages ? { pages: d.pages, roles: inferRoles(d), colors: top(d.colors, 10), backgrounds: top(d.backgrounds, 10), borders: top(d.borders, 6), fonts: top(d.fonts, 5), sizes: top(d.sizes, 12), radii: top(d.radii, 6), shadows: top(d.shadows, 4), spacing: top(d.spacing, 10), buttons: d.components.buttons.slice(0, 6), cssVars: Object.entries(d.cssVars).slice(0, 40), breakpoints: Object.keys(d.breakpoints).map(Number).sort((a, b) => a - b), contrast: d.contrast, darkMode: d.darkMode } : null;
+  let tech = null;
+  if (t && t.pages) { const det = detectStack(t); tech = { pages: t.pages, summary: summarizeStack(det, t), detections: det, headers: t.headers, cookies: t.cookies, security: securityObservations(t) }; }
+  return { design, tech, suggestions: sg };
 }
 
 export function buildDashboard(project) {
@@ -50,6 +64,7 @@ export function buildDashboard(project) {
     skippedLinks: state.skipped_links || [],
     todos: scanTodos(project.p.dir),
     docs: docList(project),
+    ...extras(project),
   };
   // "</script>" inside embedded JSON would end the script block early.
   const json = JSON.stringify(data).replace(/</g, () => String.raw`\u003c`).replace(/[\u2028\u2029]/g, ' ');

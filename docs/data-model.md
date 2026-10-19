@@ -1,6 +1,6 @@
 # Data model
 
-Everything WebAppLens knows about a target is stored as JSON, JSONL, and Markdown inside one **research project** folder (default `docs/references/<AppName>/`). This page documents the files and their shapes as written by `skills/webapp-research/scripts/lib/`. Schema version: `1` (`SCHEMA_VERSION` in `lib/project.mjs`).
+Everything WebAppLens knows about a target is stored as JSON, JSONL, and Markdown inside one **research project** folder (default `.webapplens/docs/<AppName>/`). This page documents the files and their shapes as written by `skills/webapp-research/scripts/lib/`. Schema version: `1` (`SCHEMA_VERSION` in `lib/project.mjs`).
 
 Related: [architecture](architecture.md) · [crawler design](crawler-design.md) · [security](security.md) · [output layout reference](../skills/webapp-research/references/output-layout.md) · [CONTRIBUTING](../CONTRIBUTING.md)
 

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>WebAppLens — research any web app, safely, with evidence</title>
-<meta name="description" content="WebAppLens is a universal agent skill for Claude Code, Codex and other AI agents: it safely crawls web apps, captures screenshots, inventories routes/forms/controls and writes evidence-tagged documentation.">
+<meta name="description" content="WebAppLens is a universal agent skill and Claude Code plugin: it safely crawls web apps, finds products and public demos in marketplaces, lets agents debate on a shared roundtable, and writes evidence-tagged documentation.">
 <link rel="icon" href="assets/logo-mark.svg" type="image/svg+xml">
 <style>
 :root{--bg:#f7f8fc;--card:#fff;--ink:#12142a;--mute:#626782;--line:#e3e6f2;--brand:#4f46e5;--brand2:#06b6d4;--ok:#0f9d6a;--warn:#d98200;--bad:#d6334b;--chip:#eef0fb;--code:#0f1226;--codeink:#dfe3ff;--shadow:0 1px 2px rgba(18,20,42,.06),0 12px 32px rgba(18,20,42,.07)}
@@ -48,7 +48,7 @@ footer{border-top:1px solid var(--line);padding:34px 0;color:var(--mute);font-si
 <nav class="top"><div class="wrap">
   <a href="#" style="display:flex;align-items:center;gap:10px;color:var(--ink);font-weight:800;font-size:18px;letter-spacing:-.02em"><img src="assets/logo-mark.svg" alt="" height="30" style="height:30px"><span>WebApp<span style="color:var(--brand2)">Lens</span></span></a>
   <span class="sp"></span>
-  <a href="#how">How it works</a><a href="#modes">Modes</a><a href="#safety">Safety</a><a href="#install">Install</a><a href="#demo">Sample</a><a href="#faq">FAQ</a>
+  <a href="#how">How it works</a><a href="#commands">Commands</a><a href="#marketplaces">Marketplaces</a><a href="#roundtable">Roundtable</a><a href="#auto">Auto mode</a><a href="#modes">Modes</a><a href="#safety">Safety</a><a href="#install">Install</a><a href="#demo">Sample</a><a href="#faq">FAQ</a>
   <a class="btn primary" href="https://github.com/&lt;your-username&gt;/webapplens" style="padding:7px 16px;color:#fff">GitHub</a>
 </div></nav>
 
@@ -57,7 +57,7 @@ footer{border-top:1px solid var(--line);padding:34px 0;color:var(--mute);font-si
   <h1>Research any web app.<br><span class="grad">Safely. With evidence.</span></h1>
   <p class="lead">WebAppLens teaches your AI agent to explore a web application like a careful analyst: it maps every reachable page, form and control, takes screenshots, and writes documentation a business owner <em>and</em> a developer can build from — without ever changing the app's data.</p>
   <div class="cta"><a class="btn primary" href="#install">Install in 2 minutes</a><a class="btn" href="#demo">See a sample report</a></div>
-  <div class="badges"><span class="badge">Claude Code</span><span class="badge">OpenAI Codex CLI</span><span class="badge">Any agent that reads Markdown</span><span class="badge">MIT licensed</span><span class="badge">Node ≥ 22 · Playwright</span></div>
+  <div class="badges"><span class="badge">Claude Code plugin</span><span class="badge">OpenAI Codex CLI</span><span class="badge">Any agent that reads Markdown</span><span class="badge">MIT licensed</span><span class="badge">Node ≥ 22 · Playwright</span></div>
 </div></header>
 
 <section><div class="wrap">
@@ -84,7 +84,54 @@ footer{border-top:1px solid var(--line);padding:34px 0;color:var(--mute);font-si
     <div class="step"><b>Document</b><span>Plain-English + technical docs, cross-linked.</span></div>
     <div class="step"><b>Audit</b><span>Gaps found, targeted re-crawl, honest report.</span></div>
   </div>
-  <p class="sub" style="margin-top:18px">Nine role playbooks (orchestrator, product discovery, demo access, browser reconnaissance, workflow, UI/UX, technical, documentation, completeness audit) ship with the skill. Agents with sub-agents delegate; single-agent tools simply play each role in turn.</p>
+  <p class="sub" style="margin-top:18px">Eleven role playbooks (orchestrator, product discovery, demo access, browser reconnaissance, workflow, UI/UX, technical, documentation, completeness audit, roundtable moderator, skeptic) ship with the skill. Agents with sub-agents delegate; single-agent tools simply play each role in turn.</p>
+</div></section>
+
+<section id="commands"><div class="wrap">
+  <h2>Slash commands</h2>
+  <p class="sub">Install WebAppLens as a Claude Code plugin and drive it with namespaced commands. On other agents, ask in plain language.</p>
+  <table>
+    <thead><tr><th>Command</th><th>What it does</th></tr></thead>
+    <tbody>
+      <tr><td><code>/webapplens:research</code></td><td>Full research of a URL, product or topic (modes A–D inferred); add <code>--auto</code> for auto mode</td></tr>
+      <tr><td><code>/webapplens:audit</code></td><td>Completeness audit plus a skeptic pass on an existing project</td></tr>
+      <tr><td><code>/webapplens:discover</code></td><td>Find products and public demos, including marketplaces; verify published demo credentials with one login attempt</td></tr>
+      <tr><td><code>/webapplens:compare</code></td><td>Mode D weighted scoring and ranking</td></tr>
+      <tr><td><code>/webapplens:roundtable</code></td><td>Convene the blackboard rounds on an existing project</td></tr>
+      <tr><td><code>/webapplens:setup</code></td><td>Check Node, Playwright and Chromium; ask before installing what is missing</td></tr>
+      <tr><td><code>/webapplens:status</code></td><td>Project state, coverage and open board items</td></tr>
+    </tbody>
+  </table>
+  <div class="notice"><b>Smart preflight:</b> if something is missing the agent tells you exactly what, asks “May I install X?” with the exact commands, installs and continues. In auto mode it installs Playwright and Chromium without asking.</div>
+</div></section>
+
+<section id="marketplaces"><div class="wrap">
+  <h2>Marketplace &amp; demo discovery</h2>
+  <p class="sub">Discovery looks beyond vendor sites: marketplace live previews, SaaS directories, open-source catalogues and app stores — then finds the public demo and any credentials the vendor <em>published</em>.</p>
+  <div class="grid g3">
+    <div class="card"><h3>Where it looks</h3><p>CodeCanyon/Envato, ThemeForest, G2, Capterra, Product Hunt, AlternativeTo, GitHub, SourceForge, Odoo/WordPress/Shopify app stores, AppSumo and vendor demo pages.</p></div>
+    <div class="card"><h3>What it records</h3><p><code>demo-probe</code> notes login form, CAPTCHA/MFA, demo links and credentials shown in public text — with the source URL.</p></div>
+    <div class="card"><h3>What it never does</h3><p>Guess credentials, use leaked lists, bypass CAPTCHA/MFA or scrape behind logins. <code>demo-login</code> makes exactly one attempt.</p></div>
+  </div>
+</div></section>
+
+<section id="roundtable"><div class="wrap">
+  <h2>Roundtable: agents that actually talk</h2>
+  <p class="sub">Roles communicate through a shared, append-only blackboard (<code>roundtable/board.jsonl</code>), in rounds, with a skeptic and recorded dissent.</p>
+  <div class="flow">
+    <div class="step"><b>Independent analysis</b><span>Each analyst posts evidence and proposals on its own.</span></div>
+    <div class="step"><b>Cross-review</b><span>Peers and the skeptic raise objections and questions; owners answer.</span></div>
+    <div class="step"><b>Decisions</b><span>The moderator closes every item and records dissent instead of hiding it.</span></div>
+  </div>
+  <p class="sub" style="margin-top:18px">Message types: proposal, objection, evidence, question, answer, decision, handoff, dissent. <code>board summary</code> writes <code>reports/roundtable.md</code>.</p>
+</div></section>
+
+<section id="auto"><div class="wrap">
+  <h2>Interactive or auto</h2>
+  <div class="grid g2">
+    <div class="card"><h3>Interactive (default)</h3><p>The agent asks at decision points: sandbox vs production, scope, crawl profile, installs, trying published demo credentials.</p></div>
+    <div class="card"><h3>Auto (<code>--auto</code>)</h3><p>Recommended settings (<code>--profile auto</code>) and no questions — except for missing credentials, CAPTCHA/MFA, any Category B/C action, authorization or legal ambiguity, and installs that are not pre-authorized.</p></div>
+  </div>
 </div></section>
 
 <section id="modes"><div class="wrap">
@@ -120,12 +167,19 @@ footer{border-top:1px solid var(--line);padding:34px 0;color:var(--mute);font-si
   <h2>Install</h2>
   <p class="sub">One skill folder, many agents. The installer copies it to the place your agent looks.</p>
   <div class="platforms" style="margin-bottom:18px">
-    <span class="plat">Claude Code<small>skill + 9 sub-agents</small></span><span class="plat">OpenAI Codex CLI<small>skill + AGENTS.md pointer</small></span><span class="plat">Cursor · Gemini CLI · Copilot · Aider …<small>point it at SKILL.md</small></span>
+    <span class="plat">Claude Code<small>plugin: commands + skill + sub-agents</small></span><span class="plat">OpenAI Codex CLI<small>skill + AGENTS.md pointer</small></span><span class="plat">Cursor · Gemini CLI · Copilot · Aider …<small>point it at SKILL.md</small></span>
   </div>
   <div class="tabs" role="tablist" id="itabs">
     <button aria-selected="true" data-p="claude">Claude Code</button><button data-p="codex">Codex</button><button data-p="other">Other agents</button><button data-p="npm">npm</button><button data-p="ps">PowerShell</button>
   </div>
-  <div class="pane on" id="claude"><pre><span class="cmt"># 1. get it</span>
+  <div class="pane on" id="claude"><pre><span class="cmt"># Option 1 (recommended): install as a plugin, inside Claude Code</span>
+/plugin marketplace add rahee554/webapplens
+/plugin install webapplens@webapplens
+/webapplens:setup
+<span class="cmt"># then: /webapplens:research https://demo.example.com --auto</span>
+
+<span class="cmt"># Option 2: manual install</span>
+<span class="cmt"># 1. get it</span>
 git clone https://github.com/&lt;your-username&gt;/webapplens &amp;&amp; cd webapplens
 npm install &amp;&amp; npx playwright install chromium
 <span class="cmt"># 2. install for you (all projects)… or use --scope project for this project only</span>
@@ -174,12 +228,28 @@ npm run demo     <span class="cmt"># crawls the bundled fixture app, writes exam
   <div class="notice"><b>Honest note:</b> DemoShop is a small fixture app we wrote for the test-suite — not a real product. The report, screenshots and metrics are genuine output of the tool crawling it. Use it on apps you are authorized to test, or on vendors’ public demos.</div>
 </div></section>
 
+<section id="more"><div class="wrap">
+  <h2>More than a crawler</h2>
+  <p class="sub">Ask for exactly what you need — nothing else runs. Each is a slash command in Claude Code and a plain CLI command everywhere else.</p>
+  <div class="grid g3">
+    <div class="card"><div class="ico">UI</div><h3>UI &amp; theme research</h3><p>Palette, type scale, spacing, radii, components, dark mode and contrast — with design tokens you can reuse.</p></div>
+    <div class="card"><div class="ico">⚙</div><h3>Tech-stack detection</h3><p>React, Laravel, WordPress, Odoo and ~60 more, with confidence and the signals behind each guess.</p></div>
+    <div class="card"><div class="ico">✓</div><h3>Improvement suggestions</h3><p>Accessibility, usability, performance and passive security findings with severity, effort and quick wins.</p></div>
+    <div class="card"><div class="ico">◇</div><h3>Architecture designer</h3><p>Proposed data model, API outline and a roadmap for the stack you choose — always labelled PROPOSED.</p></div>
+    <div class="card"><div class="ico">{ }</div><h3>Repo &amp; folder analysis</h3><p>Stack, routes and data model from your code. Never reads .env files or keys.</p></div>
+    <div class="card"><div class="ico">⬇</div><h3>Client-ready docs</h3><p>Finished documents land in your project root; the agent's workspace stays in <code>.webapplens</code>.</p></div>
+    <div class="card"><div class="ico">💬</div><h3>Interactive or auto</h3><p>A continuous chat that asks questions and checkpoints — or auto mode that decides with recommended defaults.</p></div>
+    <div class="card"><div class="ico">↻</div><h3>Stays up to date</h3><p>Agents check for new versions and ask before updating. Plugin, git and copied installs are all handled.</p></div>
+    <div class="card"><div class="ico">⌖</div><h3>Precise, token-aware</h3><p>The <code>intent</code> planner skips unrequested work: no screenshots unless you ask, no architecture unless you ask.</p></div>
+  </div>
+</div></section>
+
 <section id="faq"><div class="wrap">
   <h2>FAQ</h2>
   <details><summary>Is it allowed to use this on any website?</summary><p>Only on applications you own, are authorized to test, or that vendors publish as public demos. WebAppLens refuses to bypass logins, CAPTCHAs, MFA or paywalls and never uses guessed or leaked credentials.</p></details>
   <details><summary>Could it delete or change data in my app?</summary><p>By default no: the browser aborts every non-GET request and the crawler never clicks controls classified as changing or consequential. Testing writes requires an explicit sandbox mode that you confirm.</p></details>
   <details><summary>Does my data leave my machine?</summary><p>The crawler runs locally and writes local files. Your agent’s model sees what the agent reads, as with any coding agent — so use demo or sandbox accounts for sensitive apps.</p></details>
-  <details><summary>Which agents does it work with?</summary><p>Claude Code (skill + sub-agents) and Codex have installer support; any agent that can read Markdown instructions and run a Node command can use it. Tell us what you try via an issue.</p></details>
+  <details><summary>Which agents does it work with?</summary><p>Claude Code (plugin, or skill + sub-agents) and Codex have install support; any agent that can read Markdown instructions and run a Node command can use it. Tell us what you try via an issue.</p></details>
   <details><summary>What can’t it do yet?</summary><p>No pixel-level screenshot redaction; dynamic routes are sampled; server-side validation is untested outside a sandbox; heavily custom SPAs may be only partly explored. See the roadmap in <code>docs/roadmap.md</code>.</p></details>
   <details><summary>How do I contribute?</summary><p>Read <code>CONTRIBUTING.md</code>. Bug reports, platform adapters, new roles, fixtures and docs are all welcome.</p></details>
 </div></section>

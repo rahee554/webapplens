@@ -50,7 +50,7 @@ node scripts/install.mjs --platform claude --dest ./some/dir
 | `--scope project\|user` | Install for the current project, or for your user account |
 | `--dest DIR` | Override the destination directory |
 
-For Claude Code the installer also copies the nine role playbooks to `.claude/agents`. Run `node scripts/install.mjs --help` for the exact destinations your version uses.
+For Claude Code the installer also copies the role playbooks to `.claude/agents`. Run `node scripts/install.mjs --help` for the exact destinations your version uses.
 
 After installing, install the dependency inside the installed skill folder and verify:
 
@@ -96,7 +96,7 @@ node skills/webapp-research/scripts/cli.mjs report "MyApp"
 node skills/webapp-research/scripts/cli.mjs audit "MyApp"
 ```
 
-Output lands in `docs/references/MyApp/` (git-ignored in this repository). Only run against applications you are authorized to test.
+Output lands in `.webapplens/docs/MyApp/` (a hidden folder in the root of the project being researched; the CLI adds `.webapplens/.gitignore` for secrets and discovery probes). Only run against applications you are authorized to test.
 
 ## Windows notes
 

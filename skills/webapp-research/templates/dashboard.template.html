@@ -61,6 +61,9 @@ footer{color:var(--mute);font-size:13px;text-align:center;padding:30px 0}
   <section class="panel" id="p-routes"></section>
   <section class="panel" id="p-shots"></section>
   <section class="panel" id="p-forms"></section>
+  <section class="panel" id="p-design"></section>
+  <section class="panel" id="p-stack"></section>
+  <section class="panel" id="p-suggest"></section>
   <section class="panel" id="p-evidence"></section>
   <section class="panel" id="p-limits"></section>
 </main>
@@ -82,7 +85,7 @@ const incomplete = /^INCOMPLETE/.test(A.verdict);
 $('#verdict').className = 'verdict ' + (incomplete ? 'bad' : A.issues.length ? '' : 'good');
 $('#verdict').innerHTML = `<div><b>Verdict</b><p>${esc(A.verdict)}</p></div><div class="meta">created ${esc(D.manifest.created_at.slice(0, 10))}<br>tool ${esc(D.manifest.tool_version)}<br>stop reason: ${esc(A.limits.stop_reason || 'n/a')}</div>`;
 
-const TABS = [['overview', 'Overview'], ['routes', `Routes (${D.routes.length})`], ['shots', `Screenshots (${D.shots.length})`], ['forms', `Forms (${D.forms.length})`], ['evidence', `Evidence (${D.observations.length})`], ['limits', 'Limits & open items']];
+const TABS = [['overview', 'Overview'], ['routes', `Routes (${D.routes.length})`], ['shots', `Screenshots (${D.shots.length})`], ['forms', `Forms (${D.forms.length})`], ...(D.design ? [['design', 'Design']] : []), ...(D.tech ? [['stack', 'Tech stack']] : []), ...(D.suggestions ? [['suggest', `Suggestions (${D.suggestions.counts.total})`]] : []), ['evidence', `Evidence (${D.observations.length})`], ['limits', 'Limits & open items']];
 $('#tabs').innerHTML = TABS.map(([id, t]) => `<button role="tab" data-t="${id}" aria-selected="false">${t}</button>`).join('');
 function show(id) {
   document.querySelectorAll('section.panel').forEach((s) => s.classList.toggle('on', s.id === 'p-' + id));
@@ -143,6 +146,42 @@ document.addEventListener('keydown', (e) => e.key === 'Escape' && lb.classList.r
 
 // ---- forms
 $('#p-forms').innerHTML = D.forms.length ? D.forms.map((f) => `<details><summary>${esc(f.label)} <span class="sub">· ${esc(f.route)} · ${esc(f.ui_state)} · ${f.fields.length} fields${f.submit_tested ? '' : ' · submission not tested'}</span></summary><div class="tablewrap"><table><thead><tr><th>Field</th><th>Type</th><th>Required</th><th>Default</th><th>Options / limits</th></tr></thead><tbody>${f.fields.map((x) => `<tr><td>${esc(x.label || x.name)}</td><td>${esc(x.type)}</td><td>${x.required ? 'yes' : 'no'}</td><td>${x.default === null || x.default === undefined ? '' : esc(x.default)}</td><td>${esc([(x.options || []).join(', '), x.maxlength && 'max ' + x.maxlength, x.pattern && 'pattern ' + x.pattern].filter(Boolean).join('; '))}</td></tr>`).join('')}</tbody></table></div><p class="sub">Submit buttons: ${esc(f.submit.join(', ') || 'none')} · fields were read from the page; nothing was submitted.</p></details>`).join('') : '<div class="empty">No forms inventoried.</div>';
+
+// ---- design
+if (D.design) {
+  const g = D.design, R2 = g.roles;
+  const share = (list, h) => { const t = list.reduce((a, [, n]) => a + n, 0) || 1; return Math.round((list.find(([x]) => x === h)?.[1] || 0) / t * 100); };
+  const sw = (list, title) => `<h3 style="margin:18px 0 8px">${title}</h3><div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(130px,1fr))">${list.map(([h, n]) => `<div class="card" style="padding:10px"><div style="height:46px;border-radius:8px;background:${esc(h)};border:1px solid var(--line)"></div><b style="font-size:13px">${esc(h)}</b><div class="sub">${share(list, h)}% · ${n}</div></div>`).join('') || '<div class="empty">none</div>'}</div>`;
+  const role = (label, hex) => hex ? `<span class="pill"><i class="dot" style="background:${esc(hex)};border:1px solid var(--line);margin-right:6px"></i>${label} ${esc(hex)}</span>` : '';
+  $('#p-design').innerHTML = `<p class="note">Measured from computed styles on ${g.pages} page(s). Colours, sizes and component styles are <b>observed</b>; the role names (primary, surface, text) are <b>inferred</b> from frequency. Full report: <a href="docs/technicals/design-system-observed.md">design-system-observed.md</a>.</p>
+  <div style="margin:12px 0;display:flex;gap:8px;flex-wrap:wrap">${role('primary', R2.primary)}${role('surface', R2.surface)}${role('text', R2.text)}${(R2.accents || []).map((a) => role('accent', a)).join('')}<span class="pill">base ${R2.base || '?'}px</span><span class="pill">4px grid fit ${R2.grid4}%</span><span class="pill">dark mode: ${g.darkMode ? 'yes' : 'not detected'}</span></div>
+  ${sw(g.colors, 'Text colours')}${sw(g.backgrounds, 'Backgrounds')}${sw(g.borders, 'Borders')}
+  <h3 style="margin:18px 0 8px">Typography</h3><div class="card"><b>${g.fonts.map(([f]) => esc(f)).join(', ') || 'n/a'}</b><div style="margin-top:10px;display:flex;gap:14px;align-items:baseline;flex-wrap:wrap">${g.sizes.slice().sort((a, b) => a[0] - b[0]).map(([s2, n]) => `<span style="font-size:${Math.min(Number(s2), 40)}px" title="${n} uses">Aa <small class="sub">${s2}px</small></span>`).join('')}</div></div>
+  <h3 style="margin:18px 0 8px">Buttons as rendered</h3><div class="card" style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">${g.buttons.map((b) => `<span title="${esc(b.padding)} · ${b.count}×" style="display:inline-block;padding:${esc(b.padding)};border-radius:${b.radius}px;background:${b.transparent ? 'transparent' : esc(b.bg)};color:${esc(b.color || '#000')};border:${b.border && b.border !== 'none' ? esc(b.border) : '1px solid transparent'};font-size:${b.fontSize}px;font-weight:${esc(b.weight)}">${esc(b.sample || 'Button')}</span>`).join('') || '<span class="sub">none seen</span>'}</div>
+  <h3 style="margin:18px 0 8px">Radii &amp; shadows</h3><div class="card">Radii: ${g.radii.map(([v, n]) => `${v}px (${n})`).join(', ') || 'none'}<br>Shadows: ${g.shadows.map(([v, n]) => `<code>${esc(v)}</code> ×${n}`).join(' ') || 'none'}</div>
+  ${g.breakpoints.length ? `<p class="sub">Breakpoints in readable stylesheets: ${g.breakpoints.join('px, ')}px</p>` : ''}
+  <h3 style="margin:18px 0 8px">Contrast (WCAG AA estimate)</h3><div class="card">${g.contrast.checked} text samples, <b>${g.contrast.failures}</b> below AA.${g.contrast.examples.map((e) => `<div class="sub"><span style="color:${esc(e.fg)};background:${esc(e.bg)};padding:2px 8px;border:1px solid var(--line);border-radius:6px">${esc(e.text)}</span> ${esc(e.fg)} on ${esc(e.bg)} = ${e.ratio}:1</div>`).join('')}</div>
+  ${g.cssVars.length ? `<details style="margin-top:12px"><summary>CSS variables (${g.cssVars.length})</summary><div class="tablewrap"><table><tbody>${g.cssVars.map(([k, v]) => `<tr><td><code>${esc(k)}</code></td><td>${/^(#|rgb|hsl)/i.test(v) ? `<span class="dot" style="background:${esc(v)};border:1px solid var(--line)"></span> ` : ''}${esc(v)}</td></tr>`).join('')}</tbody></table></div></details>` : ''}`;
+}
+
+// ---- tech stack
+if (D.tech) {
+  const T = D.tech, cc = { high: 's-explored', medium: 's-partial', low: 's-discovered' };
+  $('#p-stack').innerHTML = `<p class="note">Detected from passive signals on ${T.pages} page(s): headers, cookie <b>names</b> (values are never read), script URLs, meta tags, DOM markers and page globals. Every technology is an <b>inferred</b> conclusion; confidence = number of independent signals. Full report: <a href="docs/technicals/tech-stack.md">tech-stack.md</a>.</p>
+  <h3 style="margin:16px 0 8px">Summary (inferred)</h3><ul class="clean">${T.summary.map((l) => `<li>${esc(l)}</li>`).join('')}</ul>
+  <h3 style="margin:16px 0 8px">Detected technologies</h3><div class="tablewrap"><table><thead><tr><th>Technology</th><th>Category</th><th>Confidence</th><th>Signals</th></tr></thead><tbody>${T.detections.map((d) => `<tr><td><b>${esc(d.name)}</b>${d.version ? ` <span class="sub">${esc(d.version)}</span>` : ''}</td><td>${esc(d.category)}</td><td><span class="pill ${cc[d.confidence]}">${d.confidence}</span></td><td class="sub">${esc(d.signals.join(' · '))}</td></tr>`).join('') || '<tr><td colspan="4" class="empty">No confident signals.</td></tr>'}</tbody></table></div>
+  <h3 style="margin:16px 0 8px">Passive security posture</h3><div class="card">${T.security.headers.length ? T.security.headers.map((h) => `<div><code>${esc(h.id)}</code> missing on ${h.missing_on} of ${h.of} page(s)</div>`).join('') : 'All tracked security headers present on every scanned page (or no header data).'}${T.security.weak_cookies.length ? `<div class="sub" style="margin-top:8px">Cookies without HttpOnly or Secure: ${T.security.weak_cookies.map((c) => esc(c.name)).join(', ')}</div>` : ''}</div>`;
+}
+
+// ---- suggestions
+if (D.suggestions) {
+  const S = D.suggestions, sev = { high: 's-failed', medium: 's-partial', low: 's-discovered' };
+  const cats = [...new Set(S.items.map((i) => i.category))];
+  $('#p-suggest').innerHTML = `<p class="note">${esc(S.scope_note)} Evidence is measured; recommendations are advice. Effort: S small, M medium, L large. Quick wins: ${S.quick_wins.join(', ') || 'none'}.</p>
+  <div class="tools"><select id="sc"><option value="">All categories</option>${cats.map((c) => `<option>${esc(c)}</option>`).join('')}</select></div><div class="tablewrap"><table><thead><tr><th>ID</th><th>Severity</th><th>Effort</th><th>Finding</th><th>Recommendation</th><th>Routes</th></tr></thead><tbody id="srows"></tbody></table></div>`;
+  const drawS = () => { const c = $('#sc').value; $('#srows').innerHTML = S.items.filter((i) => !c || i.category === c).map((i) => `<tr><td>${i.id}</td><td><span class="pill ${sev[i.severity]}">${i.severity}</span></td><td>${i.effort}</td><td><b>${esc(i.title)}</b><div class="sub">${esc(i.evidence)}</div></td><td>${esc(i.recommendation)}</td><td class="sub">${esc(i.routes.join(', '))}</td></tr>`).join('') || '<tr><td colspan="6" class="empty">No suggestions.</td></tr>'; };
+  $('#sc').oninput = drawS; drawS();
+}
 
 // ---- evidence
 const order = ['observed', 'verified_interaction', 'official_docs', 'public_source', 'inferred', 'hypothesis'];

@@ -33,7 +33,7 @@ export function resolveCredentials(project, { credentialsFile } = {}) {
   if (!password && meta.password) {
     ({ password } = meta);
     source = 'credentials.json';
-    warnings.push('Password stored in credentials.json (git-ignored). Prefer environment variables.');
+    if (!meta.public_demo) warnings.push('Password stored in credentials.json (git-ignored). Prefer environment variables.');
   }
   if (!username || !password) return null;
   registerSecret(password);

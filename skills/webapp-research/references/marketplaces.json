@@ -1,0 +1,178 @@
+{
+  "_comment": "Data for `discover-queries`. {topic} is replaced by the user's topic. Queries are web-search strings, not scraping targets: open only public pages and respect each site's robots/ToS.",
+  "marketplaces": [
+    {
+      "id": "codecanyon",
+      "name": "CodeCanyon (Envato Market)",
+      "url": "https://codecanyon.net",
+      "kind": "code-marketplace",
+      "query_templates": [
+        "site:codecanyon.net \"{topic}\" \"live preview\"",
+        "site:codecanyon.net \"{topic}\" admin demo",
+        "site:codecanyon.net \"{topic}\" \"demo\" \"username\" \"password\""
+      ],
+      "demo_hints": "Item pages have a 'Live Preview' button (often a frame or an external demo URL). Demo logins, when published, are usually in the item description or in the live-preview toolbar, not in the preview itself.",
+      "notes": "Public item pages only. Purchasing, downloading code and logging in to Envato accounts are out of scope."
+    },
+    {
+      "id": "themeforest",
+      "name": "ThemeForest (Envato Market)",
+      "url": "https://themeforest.net",
+      "kind": "theme-marketplace",
+      "query_templates": [
+        "site:themeforest.net \"{topic}\" \"live preview\"",
+        "site:themeforest.net \"{topic}\" admin dashboard template demo",
+        "site:themeforest.net \"{topic}\" \"demo\" \"login\""
+      ],
+      "demo_hints": "Mostly front-end themes and admin templates. Previews show screens but often have no backend; treat them as UI references and say so.",
+      "notes": "Public item pages only. Themes rarely contain real workflows; record that limitation."
+    },
+    {
+      "id": "envato-elements",
+      "name": "Envato Elements",
+      "url": "https://elements.envato.com",
+      "kind": "asset-subscription",
+      "query_templates": [
+        "site:elements.envato.com \"{topic}\" template preview"
+      ],
+      "demo_hints": "Asset library with static previews; no application demos or demo logins in general.",
+      "notes": "Low value for application research. Include only when the user asks for visual templates."
+    },
+    {
+      "id": "github",
+      "name": "GitHub (open-source catalogue)",
+      "url": "https://github.com",
+      "kind": "open-source",
+      "query_templates": [
+        "site:github.com \"{topic}\" open source \"live demo\"",
+        "site:github.com \"{topic}\" \"demo\" \"credentials\" README",
+        "site:github.com/topics \"{topic}\"",
+        "\"{topic}\" self-hosted open source demo site github"
+      ],
+      "demo_hints": "READMEs often link a hosted demo and list a demo account. Prefer the project's own README or docs site over forks.",
+      "notes": "Only credentials the maintainers state for a public demo count. Do not search commit history, issues or config files for secrets."
+    },
+    {
+      "id": "sourceforge",
+      "name": "SourceForge",
+      "url": "https://sourceforge.net",
+      "kind": "open-source",
+      "query_templates": [
+        "site:sourceforge.net \"{topic}\" demo",
+        "site:sourceforge.net/projects \"{topic}\" \"live demo\""
+      ],
+      "demo_hints": "Project pages sometimes link a demo site or a hosted sandbox.",
+      "notes": "Many entries are inactive; check last-update dates."
+    },
+    {
+      "id": "producthunt",
+      "name": "Product Hunt",
+      "url": "https://www.producthunt.com",
+      "kind": "saas-directory",
+      "query_templates": [
+        "site:producthunt.com \"{topic}\" software",
+        "site:producthunt.com \"{topic}\" \"free trial\" OR \"demo\""
+      ],
+      "demo_hints": "Launch pages link to the vendor site; follow the link and use the vendor's own demo/trial page.",
+      "notes": "Discovery only. Verify claims on the vendor's own site."
+    },
+    {
+      "id": "alternativeto",
+      "name": "AlternativeTo",
+      "url": "https://alternativeto.net",
+      "kind": "saas-directory",
+      "query_templates": [
+        "site:alternativeto.net \"{topic}\" alternatives",
+        "site:alternativeto.net \"{topic}\" open source"
+      ],
+      "demo_hints": "Lists competitors and licence type (open source, free, paid). Use it to widen the candidate list, then go to vendor sites.",
+      "notes": "Community-edited; treat as a lead, not as evidence."
+    },
+    {
+      "id": "g2",
+      "name": "G2",
+      "url": "https://www.g2.com",
+      "kind": "saas-directory",
+      "query_templates": [
+        "site:g2.com \"{topic}\" software categories",
+        "site:g2.com \"{topic}\" \"free trial\" OR \"demo\""
+      ],
+      "demo_hints": "Category pages rank products and show whether a free trial or demo exists. Follow through to the vendor.",
+      "notes": "Review pages can block automated access; use search results and the vendor site, do not scrape."
+    },
+    {
+      "id": "capterra",
+      "name": "Capterra",
+      "url": "https://www.capterra.com",
+      "kind": "saas-directory",
+      "query_templates": [
+        "site:capterra.com \"{topic}\" software",
+        "site:capterra.com \"{topic}\" \"free trial\" OR \"free demo\""
+      ],
+      "demo_hints": "Listings flag 'Free trial' / 'Free version' and link to the vendor.",
+      "notes": "Same as G2: leads only; verify on the vendor's own pages."
+    },
+    {
+      "id": "odoo-apps",
+      "name": "Odoo Apps",
+      "url": "https://apps.odoo.com",
+      "kind": "app-store",
+      "query_templates": [
+        "site:apps.odoo.com \"{topic}\"",
+        "site:apps.odoo.com \"{topic}\" demo",
+        "site:odoo.com \"{topic}\" documentation"
+      ],
+      "demo_hints": "Odoo itself offers a free trial instance after registration; app pages may link a vendor demo. Registration-only access is recorded as registration_required.",
+      "notes": "Do not create accounts unless the user asked and supplied the details."
+    },
+    {
+      "id": "wordpress-plugins",
+      "name": "WordPress plugin directory",
+      "url": "https://wordpress.org/plugins",
+      "kind": "app-store",
+      "query_templates": [
+        "site:wordpress.org/plugins \"{topic}\"",
+        "\"{topic}\" wordpress plugin \"live demo\" OR \"try demo\""
+      ],
+      "demo_hints": "Plugin pages have a 'Preview' button for the WordPress Playground in some cases and vendor demo links in the description.",
+      "notes": "Free-plugin demos are often a disposable sandbox; record that in notes."
+    },
+    {
+      "id": "shopify-apps",
+      "name": "Shopify App Store",
+      "url": "https://apps.shopify.com",
+      "kind": "app-store",
+      "query_templates": [
+        "site:apps.shopify.com \"{topic}\"",
+        "site:apps.shopify.com \"{topic}\" \"demo store\" OR \"watch demo\""
+      ],
+      "demo_hints": "Listings often link a demo store or video. Real use needs a Shopify store; record as registration_required.",
+      "notes": "Do not install apps on stores you do not own."
+    },
+    {
+      "id": "appsumo",
+      "name": "AppSumo",
+      "url": "https://appsumo.com",
+      "kind": "deal-marketplace",
+      "query_templates": [
+        "site:appsumo.com \"{topic}\"",
+        "site:appsumo.com \"{topic}\" demo"
+      ],
+      "demo_hints": "Deal pages link to the vendor and sometimes a demo video or public demo account.",
+      "notes": "Discovery only; purchasing is out of scope."
+    },
+    {
+      "id": "vendor-demo",
+      "name": "Vendor sites (generic demo search)",
+      "url": "https://www.google.com",
+      "kind": "generic",
+      "query_templates": [
+        "\"{topic}\" \"live demo\" OR \"demo login\" OR \"try demo\"",
+        "\"{topic}\" \"demo credentials\" OR \"demo account\" OR \"demo username\"",
+        "\"{topic}\" software online demo no signup"
+      ],
+      "demo_hints": "Look for the vendor's own demo/pricing/docs pages that state credentials in text on a public page.",
+      "notes": "Ignore pastebins, forums of leaked data and credential lists. Only vendor- or marketplace-published demo credentials count."
+    }
+  ]
+}
