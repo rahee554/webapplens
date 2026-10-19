@@ -1,0 +1,78 @@
+name: Bug report
+description: Something is broken or behaves unexpectedly
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. Please **do not** include real credentials, tokens, or personal data. For security problems (guard bypass, secret leakage, scope escape), use a private advisory instead: see SECURITY.md.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What you did, what you expected, and what you got.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: Ideally against the bundled fixture (`npm run demo`) or a minimal HTML snippet. Include the exact command line.
+      placeholder: |
+        1. node skills/webapp-research/scripts/cli.mjs init ...
+        2. node skills/webapp-research/scripts/cli.mjs crawl ...
+    validations:
+      required: true
+  - type: textarea
+    id: output
+    attributes:
+      label: Relevant output
+      description: Paste error text, `doctor` output, or lines from `logs/research.log`. Logs are redacted, but check before pasting.
+      render: shell
+  - type: input
+    id: version
+    attributes:
+      label: WebAppLens version
+      description: From package.json
+      placeholder: "0.1.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options: [Windows, macOS, Linux, Other]
+    validations:
+      required: true
+  - type: input
+    id: node
+    attributes:
+      label: Node.js version
+      placeholder: "22.x"
+    validations:
+      required: true
+  - type: dropdown
+    id: agent
+    attributes:
+      label: Agent platform (if used through an agent)
+      options: [None (CLI only), Claude Code, OpenAI Codex CLI, Other]
+  - type: dropdown
+    id: target
+    attributes:
+      label: What were you crawling?
+      options:
+        - The bundled fixture
+        - My own application
+        - A vendor's public demo
+        - Other authorized system
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      options:
+        - label: I am authorized to test the application involved.
+          required: true
+        - label: I removed credentials, tokens, and personal data from this report.
+          required: true

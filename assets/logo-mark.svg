@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-label="WebAppLens">
+  <title>WebAppLens</title>
+  <defs>
+    <linearGradient id="wal-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#4f46e5"/>
+      <stop offset="1" stop-color="#06b6d4"/>
+    </linearGradient>
+    <linearGradient id="wal-glass" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.28"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0.06"/>
+    </linearGradient>
+  </defs>
+  <rect width="256" height="256" rx="58" fill="url(#wal-bg)"/>
+  <!-- lens -->
+  <circle cx="114" cy="114" r="68" fill="url(#wal-glass)" stroke="#fff" stroke-width="14"/>
+  <line x1="165" y1="165" x2="214" y2="214" stroke="#fff" stroke-width="18" stroke-linecap="round"/>
+  <!-- the web app seen through the lens: window, nav, content -->
+  <rect x="76" y="82" width="76" height="64" rx="9" fill="none" stroke="#fff" stroke-width="6"/>
+  <line x1="76" y1="100" x2="152" y2="100" stroke="#fff" stroke-width="6"/>
+  <circle cx="87" cy="91" r="3" fill="#fff"/><circle cx="97" cy="91" r="3" fill="#fff"/>
+  <line x1="88" y1="112" x2="88" y2="134" stroke="#fff" stroke-width="6" stroke-linecap="round"/>
+  <line x1="102" y1="114" x2="138" y2="114" stroke="#fff" stroke-width="6" stroke-linecap="round"/>
+  <line x1="102" y1="127" x2="126" y2="127" stroke="#fff" stroke-width="6" stroke-linecap="round" opacity="0.8"/>
+  <!-- glint -->
+  <path d="M64 100a52 52 0 0 1 26-30" fill="none" stroke="#fff" stroke-opacity="0.75" stroke-width="7" stroke-linecap="round"/>
+</svg>

@@ -1,0 +1,69 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: test (${{ matrix.os }}, node ${{ matrix.node }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        node: [22]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci
+      - name: Install Chromium (Linux, with system dependencies)
+        if: runner.os == 'Linux'
+        run: npx playwright install --with-deps chromium
+      - name: Install Chromium
+        if: runner.os != 'Linux'
+        run: npx playwright install chromium
+      - run: npm test
+
+  skill-validation:
+    name: skill validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: CLI help runs without dependencies
+        run: node skills/webapp-research/scripts/cli.mjs help
+      - name: SKILL.md has name and description frontmatter
+        run: |
+          node -e "
+          const fs = require('fs');
+          const t = fs.readFileSync('skills/webapp-research/SKILL.md', 'utf8');
+          const m = t.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+          if (!m) throw new Error('SKILL.md has no frontmatter');
+          for (const k of ['name', 'description']) {
+            if (!new RegExp('^' + k + ':\\\\s*\\\\S', 'm').test(m[1])) throw new Error('SKILL.md frontmatter is missing ' + k);
+          }
+          for (const f of fs.readdirSync('skills/webapp-research/agents')) {
+            const a = fs.readFileSync('skills/webapp-research/agents/' + f, 'utf8').match(/^---\r?\n([\s\S]*?)\r?\n---/);
+            if (!a) throw new Error(f + ': no frontmatter');
+            for (const k of ['name', 'description', 'tools']) {
+              if (!new RegExp('^' + k + ':\\\\s*\\\\S', 'm').test(a[1])) throw new Error(f + ': missing ' + k);
+            }
+          }
+          console.log('skill metadata ok');
+          "

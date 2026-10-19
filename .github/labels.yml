@@ -1,0 +1,37 @@
+# Label definitions. Apply with a label-sync tool or `gh label create` / `gh label edit`.
+- name: good first issue
+  color: 7057ff
+  description: Small, well-scoped, with pointers to the relevant files
+- name: help wanted
+  color: 008672
+  description: We would welcome a contributor for this
+- name: safety
+  color: b60205
+  description: Touches mutation guard, scope, redaction, or credentials; extra review
+- name: platform
+  color: 1d76db
+  description: Agent platform or operating system support
+- name: docs
+  color: 0075ca
+  description: Documentation only
+- name: bug
+  color: d73a4a
+  description: Something is broken
+- name: enhancement
+  color: a2eeef
+  description: New feature or improvement
+- name: question
+  color: d876e3
+  description: Usage question or discussion
+- name: crawler
+  color: fbca04
+  description: Crawler, inspector, or browser session
+- name: agents
+  color: c5def5
+  description: Agent role playbooks and skill instructions
+- name: dependencies
+  color: 0366d6
+  description: Dependency updates
+- name: wontfix
+  color: ffffff
+  description: Out of scope or conflicts with design principles

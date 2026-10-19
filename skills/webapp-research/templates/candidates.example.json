@@ -1,0 +1,30 @@
+{
+  "_comment": "Schema example, not real data. Scores are 0-5; every non-zero score needs evidence URLs. Demo access above 3 requires verification_status 'verified'.",
+  "weights": { "relevance": 0.35, "coverage": 0.25, "demo_access": 0.2, "docs": 0.1, "researchability": 0.1 },
+  "candidates": [
+    {
+      "name": "Example ERP",
+      "website": "https://example-erp.test",
+      "category": "ERP",
+      "modules": ["Inventory", "Sales", "Accounting"],
+      "demo": {
+        "url": "https://demo.example-erp.test",
+        "access_type": "official_demo",
+        "credentials_available": true,
+        "registration_required": false,
+        "verification_status": "unverified",
+        "verified_at": null,
+        "instructions_url": "https://example-erp.test/demo"
+      },
+      "scores": { "relevance": 4, "coverage": 4, "demo_access": 3, "docs": 4, "researchability": 3 },
+      "evidence": {
+        "relevance": ["https://example-erp.test/features"],
+        "coverage": ["https://example-erp.test/modules"],
+        "demo_access": ["https://example-erp.test/demo"],
+        "docs": ["https://docs.example-erp.test"],
+        "researchability": ["https://demo.example-erp.test"]
+      },
+      "limitations": "Demo resets nightly; admin role only."
+    }
+  ]
+}

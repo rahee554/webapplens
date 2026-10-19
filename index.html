@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WebAppLens — research any web app, safely, with evidence</title>
+<meta name="description" content="WebAppLens is a universal agent skill for Claude Code, Codex and other AI agents: it safely crawls web apps, captures screenshots, inventories routes/forms/controls and writes evidence-tagged documentation.">
+<link rel="icon" href="assets/logo-mark.svg" type="image/svg+xml">
+<style>
+:root{--bg:#f7f8fc;--card:#fff;--ink:#12142a;--mute:#626782;--line:#e3e6f2;--brand:#4f46e5;--brand2:#06b6d4;--ok:#0f9d6a;--warn:#d98200;--bad:#d6334b;--chip:#eef0fb;--code:#0f1226;--codeink:#dfe3ff;--shadow:0 1px 2px rgba(18,20,42,.06),0 12px 32px rgba(18,20,42,.07)}
+@media (prefers-color-scheme:dark){:root{--bg:#0d0f1f;--card:#161933;--ink:#eceefc;--mute:#9a9fc0;--line:#2a2e50;--chip:#20244a;--code:#080a17;--shadow:0 1px 2px rgba(0,0,0,.4),0 12px 32px rgba(0,0,0,.35)}}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.65 Inter,"Segoe UI",system-ui,-apple-system,sans-serif}
+a{color:var(--brand)}h1,h2,h3{line-height:1.15;margin:0;letter-spacing:-.02em}code,pre{font-family:ui-monospace,"Cascadia Code",Menlo,Consolas,monospace}
+.wrap{max-width:1120px;margin:0 auto;padding:0 22px}
+nav.top{position:sticky;top:0;z-index:5;backdrop-filter:blur(10px);background:color-mix(in srgb,var(--bg) 82%,transparent);border-bottom:1px solid var(--line)}
+nav.top .wrap{display:flex;align-items:center;gap:22px;height:60px}nav.top img{height:30px}nav.top a{color:var(--mute);text-decoration:none;font-size:14.5px}nav.top a:hover{color:var(--ink)}.sp{flex:1}
+.btn{display:inline-block;padding:11px 22px;border-radius:12px;font-weight:650;text-decoration:none;border:1px solid var(--line);color:var(--ink);background:var(--card)}
+.btn.primary{background:linear-gradient(120deg,var(--brand),var(--brand2));color:#fff;border:0;box-shadow:0 8px 24px rgba(79,70,229,.35)}
+.hero{padding:76px 0 40px;text-align:center}.hero .mark{width:92px;height:92px}.hero h1{font-size:clamp(36px,6vw,62px);margin:18px 0 14px}
+.grad{background:linear-gradient(120deg,var(--brand),var(--brand2));-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero p.lead{font-size:clamp(17px,2.2vw,21px);color:var(--mute);max-width:760px;margin:0 auto 26px}.cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.badges{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:22px}.badge{font-size:12.5px;padding:3px 12px;border-radius:99px;background:var(--chip);color:var(--mute);border:1px solid var(--line)}
+section{padding:54px 0}section h2{font-size:clamp(26px,3.6vw,38px);margin-bottom:10px}section .sub{color:var(--mute);max-width:70ch;margin:0 0 28px}
+.grid{display:grid;gap:16px}.g2{grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}.g3{grid-template-columns:repeat(auto-fit,minmax(250px,1fr))}.g4{grid-template-columns:repeat(auto-fit,minmax(210px,1fr))}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px 22px;box-shadow:var(--shadow)}.card h3{font-size:18px;margin-bottom:6px}.card p{margin:0;color:var(--mute);font-size:15px}
+.ico{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;font-weight:800;margin-bottom:12px}
+.flow{display:grid;gap:0;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));counter-reset:s}
+.step{position:relative;background:var(--card);border:1px solid var(--line);padding:18px 16px;counter-increment:s}.step:first-child{border-radius:16px 0 0 16px}.step:last-child{border-radius:0 16px 16px 0}
+.step:before{content:counter(s);display:inline-grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--brand);color:#fff;font-size:13px;font-weight:700;margin-bottom:8px}
+.step b{display:block}.step span{color:var(--mute);font-size:13.5px}
+@media(max-width:720px){.step{border-radius:12px!important;margin-bottom:8px}}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}.tabs button{font:inherit;font-size:14px;padding:7px 15px;border-radius:99px;border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer}.tabs button[aria-selected=true]{background:var(--brand);color:#fff;border-color:var(--brand)}
+.pane{display:none}.pane.on{display:block}
+pre{margin:0;background:var(--code);color:var(--codeink);border-radius:14px;padding:18px 20px;overflow:auto;font-size:13.5px;line-height:1.6;position:relative}
+.copy{position:absolute;top:10px;right:10px;font:12px inherit;background:#ffffff1a;color:#fff;border:1px solid #ffffff33;border-radius:8px;padding:4px 10px;cursor:pointer}
+.cmt{color:#8c93c4}
+table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;font-size:14.5px}th,td{padding:11px 14px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}th{background:var(--chip);font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute)}tr:last-child td{border:0}
+.A{color:var(--ok)}.B{color:var(--warn)}.C{color:var(--bad)}.tag{font-weight:800}
+.demo[hidden]{display:none}.demo{border:1px solid var(--line);border-radius:18px;overflow:hidden;box-shadow:var(--shadow);background:var(--card)}.demo .bar{padding:10px 16px;font-size:13px;color:var(--mute);border-bottom:1px solid var(--line);display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.demo iframe{width:100%;height:640px;border:0;display:block}
+.notice{background:color-mix(in srgb,var(--warn) 12%,var(--card));border:1px solid color-mix(in srgb,var(--warn) 40%,var(--line));border-radius:14px;padding:14px 18px;font-size:14.5px;margin-top:14px}
+details{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 18px;margin-bottom:10px}summary{cursor:pointer;font-weight:650}details p{color:var(--mute);margin:8px 0 0}
+.platforms{display:flex;gap:10px;flex-wrap:wrap}.plat{padding:8px 16px;border-radius:12px;background:var(--card);border:1px solid var(--line);font-weight:600;font-size:14.5px}.plat small{display:block;color:var(--mute);font-weight:400;font-size:12px}
+footer{border-top:1px solid var(--line);padding:34px 0;color:var(--mute);font-size:14px;text-align:center}
+</style>
+</head>
+<body>
+<nav class="top"><div class="wrap">
+  <a href="#" style="display:flex;align-items:center;gap:10px;color:var(--ink);font-weight:800;font-size:18px;letter-spacing:-.02em"><img src="assets/logo-mark.svg" alt="" height="30" style="height:30px"><span>WebApp<span style="color:var(--brand2)">Lens</span></span></a>
+  <span class="sp"></span>
+  <a href="#how">How it works</a><a href="#modes">Modes</a><a href="#safety">Safety</a><a href="#install">Install</a><a href="#demo">Sample</a><a href="#faq">FAQ</a>
+  <a class="btn primary" href="https://github.com/&lt;your-username&gt;/webapplens" style="padding:7px 16px;color:#fff">GitHub</a>
+</div></nav>
+
+<header class="hero"><div class="wrap">
+  <img class="mark" src="assets/logo-mark.svg" alt="">
+  <h1>Research any web app.<br><span class="grad">Safely. With evidence.</span></h1>
+  <p class="lead">WebAppLens teaches your AI agent to explore a web application like a careful analyst: it maps every reachable page, form and control, takes screenshots, and writes documentation a business owner <em>and</em> a developer can build from — without ever changing the app's data.</p>
+  <div class="cta"><a class="btn primary" href="#install">Install in 2 minutes</a><a class="btn" href="#demo">See a sample report</a></div>
+  <div class="badges"><span class="badge">Claude Code</span><span class="badge">OpenAI Codex CLI</span><span class="badge">Any agent that reads Markdown</span><span class="badge">MIT licensed</span><span class="badge">Node ≥ 22 · Playwright</span></div>
+</div></header>
+
+<section><div class="wrap">
+  <h2>What you get</h2>
+  <p class="sub">Point it at a product, a topic, or a login and a URL. It hands back a folder you can read, share and build from.</p>
+  <div class="grid g3">
+    <div class="card"><div class="ico">1</div><h3>A complete map</h3><p>Route inventory with status per page, nested menus, tabs, dialogs, pagination — dynamic routes grouped as templates.</p></div>
+    <div class="card"><div class="ico">2</div><h3>Real screenshots</h3><p>Every explored page, plus tabs, open dialogs and a mobile view — deterministic names, linked from the docs.</p></div>
+    <div class="card"><div class="ico">3</div><h3>Forms &amp; controls</h3><p>Every field, type, required flag, option list and default (secrets never recorded), and every control with a safety category.</p></div>
+    <div class="card"><div class="ico">4</div><h3>Two doc layers</h3><p>Plain-English guides for owners and designers; technical docs for developers and AI coding agents.</p></div>
+    <div class="card"><div class="ico">5</div><h3>Evidence &amp; confidence</h3><p>Every finding is tagged: observed, verified, official docs, inferred or hypothesis. A UI can never “confirm” a database schema.</p></div>
+    <div class="card"><div class="ico">6</div><h3>Honest coverage</h3><p>Separate metrics for routes, forms, controls, workflows and screenshots. It never claims an app is “fully explored”.</p></div>
+  </div>
+</div></section>
+
+<section id="how"><div class="wrap">
+  <h2>How it works</h2>
+  <p class="sub">A deterministic CLI does the browsing and bookkeeping. Your agent does the judgement. Everything is saved to files, so a crash or an ended chat never loses work.</p>
+  <div class="flow">
+    <div class="step"><b>Scope</b><span>Classify the request; ask only what blocks safe progress.</span></div>
+    <div class="step"><b>Discover</b><span>Find products, official docs and verified demos.</span></div>
+    <div class="step"><b>Crawl</b><span>Read-only Playwright run: routes, forms, tabs, dialogs, screenshots.</span></div>
+    <div class="step"><b>Analyse</b><span>Workflow, UI/UX and technical roles read the artifacts.</span></div>
+    <div class="step"><b>Document</b><span>Plain-English + technical docs, cross-linked.</span></div>
+    <div class="step"><b>Audit</b><span>Gaps found, targeted re-crawl, honest report.</span></div>
+  </div>
+  <p class="sub" style="margin-top:18px">Nine role playbooks (orchestrator, product discovery, demo access, browser reconnaissance, workflow, UI/UX, technical, documentation, completeness audit) ship with the skill. Agents with sub-agents delegate; single-agent tools simply play each role in turn.</p>
+</div></section>
+
+<section id="modes"><div class="wrap">
+  <h2>Four ways to use it</h2>
+  <div class="grid g4">
+    <div class="card"><h3>A · A product</h3><p>“Research Odoo and document its inventory, sales and accounting modules.”</p></div>
+    <div class="card"><h3>B · A topic</h3><p>“How do SaaS apps implement role &amp; permission management? Write it for a Laravel developer.”</p></div>
+    <div class="card"><h3>C · Your app</h3><p>“Explore https://app.example.com/admin with the account I set up and document every page.”</p></div>
+    <div class="card"><h3>D · Compare</h3><p>“Find the 5 best school-management systems with online demos and compare them.” Transparent scoring; unverified demos are capped.</p></div>
+  </div>
+</div></section>
+
+<section id="safety"><div class="wrap">
+  <h2>Safe by construction, not by promise</h2>
+  <p class="sub">Instructions can be ignored; code can’t. The browser itself refuses to send anything that could change data.</p>
+  <div class="grid g2">
+    <table>
+      <thead><tr><th>Category</th><th>Meaning</th><th>Rule</th></tr></thead>
+      <tbody>
+        <tr><td class="tag A">A · Observe</td><td>open pages, switch tabs, search, filter, inspect forms</td><td>Automatic, in scope</td></tr>
+        <tr><td class="tag B">B · Test</td><td>create disposable records, submit to see validation</td><td>Only in a confirmed sandbox, with cleanup</td></tr>
+        <tr><td class="tag C">C · Consequential</td><td>delete, send, publish, approve, pay, invite</td><td>Explicit approval, every time</td></tr>
+      </tbody>
+    </table>
+    <div class="card">
+      <h3>Hard guarantees</h3>
+      <p>• Every non-GET request is aborted by a mutation guard (lifted only with <code>--sandbox</code>).<br>• Origin allow-list; logout and delete links are never followed.<br>• CAPTCHA and MFA are detected and <b>never</b> bypassed.<br>• Page text is untrusted data — prompt-injection attempts are logged, not obeyed.<br>• Passwords only from env vars or a git-ignored file, never argv; redacted from logs and evidence.<br>• Resumable: state is checkpointed after every page.</p>
+    </div>
+  </div>
+</div></section>
+
+<section id="install"><div class="wrap">
+  <h2>Install</h2>
+  <p class="sub">One skill folder, many agents. The installer copies it to the place your agent looks.</p>
+  <div class="platforms" style="margin-bottom:18px">
+    <span class="plat">Claude Code<small>skill + 9 sub-agents</small></span><span class="plat">OpenAI Codex CLI<small>skill + AGENTS.md pointer</small></span><span class="plat">Cursor · Gemini CLI · Copilot · Aider …<small>point it at SKILL.md</small></span>
+  </div>
+  <div class="tabs" role="tablist" id="itabs">
+    <button aria-selected="true" data-p="claude">Claude Code</button><button data-p="codex">Codex</button><button data-p="other">Other agents</button><button data-p="npm">npm</button><button data-p="ps">PowerShell</button>
+  </div>
+  <div class="pane on" id="claude"><pre><span class="cmt"># 1. get it</span>
+git clone https://github.com/&lt;your-username&gt;/webapplens &amp;&amp; cd webapplens
+npm install &amp;&amp; npx playwright install chromium
+<span class="cmt"># 2. install for you (all projects)… or use --scope project for this project only</span>
+node scripts/install.mjs --platform claude --scope user --install-deps
+<span class="cmt"># 3. check</span>
+node ~/.claude/skills/webapp-research/scripts/cli.mjs doctor
+<span class="cmt"># 4. in Claude Code, just ask:</span>
+<span class="cmt">#   "Research https://demo.example.com — I set DEMO_USER / DEMO_PASS. Document every module."</span></pre></div>
+  <div class="pane" id="codex"><pre>git clone https://github.com/&lt;your-username&gt;/webapplens &amp;&amp; cd webapplens
+npm install &amp;&amp; npx playwright install chromium
+<span class="cmt"># project scope also adds a pointer block to AGENTS.md</span>
+node scripts/install.mjs --platform codex --scope project --install-deps
+<span class="cmt"># then ask Codex: "Use the webapp-research skill to explore …"</span></pre></div>
+  <div class="pane" id="other"><pre><span class="cmt"># Everything is Markdown + a Node CLI, so any agent that can read files and run commands works.</span>
+node scripts/install.mjs --platform agents --scope project --install-deps   <span class="cmt"># → .agents/skills/webapp-research + AGENTS.md pointer</span>
+<span class="cmt"># or copy anywhere:</span>
+node scripts/install.mjs --dest ./tools --install-deps
+<span class="cmt"># then tell your agent (in its rules/instructions file):</span>
+<span class="cmt">#   "For web-app research, follow tools/webapp-research/SKILL.md"</span></pre></div>
+  <div class="pane" id="npm"><pre>git clone https://github.com/&lt;your-username&gt;/webapplens &amp;&amp; cd webapplens
+npm install
+npx playwright install chromium
+npm run doctor
+npm test               <span class="cmt"># unit + integration (launches Chromium)</span>
+npm run demo           <span class="cmt"># regenerate the sample report</span>
+npx webapplens install --platform claude --scope user --install-deps   <span class="cmt"># once published to npm</span></pre></div>
+  <div class="pane" id="ps"><pre>git clone https://github.com/&lt;your-username&gt;/webapplens; cd webapplens
+npm install; npx playwright install chromium
+node scripts/install.mjs --platform claude --scope user --install-deps
+<span class="cmt"># give the agent credentials safely (this session only):</span>
+$env:SHOP_USERNAME = 'me@example.com'
+$env:SHOP_PASSWORD = Read-Host -MaskInput 'Password'
+<span class="cmt"># persist for your user:</span>
+[Environment]::SetEnvironmentVariable('SHOP_USERNAME','me@example.com','User')</pre></div>
+</div></section>
+
+<section id="demo"><div class="wrap">
+  <h2>See a sample report</h2>
+  <p class="sub">Every research project gets this interactive dashboard (<code>dashboard.html</code>): verdict, separate metrics, filterable routes, screenshot gallery, forms explorer, evidence and limits.</p>
+  <div class="demo" id="demobox" hidden>
+    <div class="bar"><b>DemoShop</b><span>· generated by WebAppLens</span><span class="sp"></span><a href="examples/research/DemoShop/dashboard.html" target="_blank" rel="noopener">open full page ↗</a></div>
+    <iframe id="demoframe" title="Sample WebAppLens dashboard"></iframe>
+  </div>
+  <div class="card" id="demohow"><h3>Generate the sample locally</h3><pre>npm install &amp;&amp; npx playwright install chromium
+npm run demo     <span class="cmt"># crawls the bundled fixture app, writes examples/research/DemoShop/</span></pre><p style="margin-top:10px">Then open <code>examples/research/DemoShop/dashboard.html</code>. Demo output is git-ignored, so it is not shipped with the repository.</p></div>
+  <div class="notice"><b>Honest note:</b> DemoShop is a small fixture app we wrote for the test-suite — not a real product. The report, screenshots and metrics are genuine output of the tool crawling it. Use it on apps you are authorized to test, or on vendors’ public demos.</div>
+</div></section>
+
+<section id="faq"><div class="wrap">
+  <h2>FAQ</h2>
+  <details><summary>Is it allowed to use this on any website?</summary><p>Only on applications you own, are authorized to test, or that vendors publish as public demos. WebAppLens refuses to bypass logins, CAPTCHAs, MFA or paywalls and never uses guessed or leaked credentials.</p></details>
+  <details><summary>Could it delete or change data in my app?</summary><p>By default no: the browser aborts every non-GET request and the crawler never clicks controls classified as changing or consequential. Testing writes requires an explicit sandbox mode that you confirm.</p></details>
+  <details><summary>Does my data leave my machine?</summary><p>The crawler runs locally and writes local files. Your agent’s model sees what the agent reads, as with any coding agent — so use demo or sandbox accounts for sensitive apps.</p></details>
+  <details><summary>Which agents does it work with?</summary><p>Claude Code (skill + sub-agents) and Codex have installer support; any agent that can read Markdown instructions and run a Node command can use it. Tell us what you try via an issue.</p></details>
+  <details><summary>What can’t it do yet?</summary><p>No pixel-level screenshot redaction; dynamic routes are sampled; server-side validation is untested outside a sandbox; heavily custom SPAs may be only partly explored. See the roadmap in <code>docs/roadmap.md</code>.</p></details>
+  <details><summary>How do I contribute?</summary><p>Read <code>CONTRIBUTING.md</code>. Bug reports, platform adapters, new roles, fixtures and docs are all welcome.</p></details>
+</div></section>
+
+<footer><div class="wrap"><img src="assets/logo-mark.svg" width="34" alt=""><p>WebAppLens · MIT License · built to be forked, extended and improved by everyone.</p></div></footer>
+
+<script>
+document.querySelectorAll('pre').forEach((p) => { const b = document.createElement('button'); b.className = 'copy'; b.textContent = 'Copy'; b.onclick = () => { navigator.clipboard?.writeText(p.innerText.replace(/^Copy\n?/, '')); b.textContent = 'Copied'; setTimeout(() => (b.textContent = 'Copy'), 1200); }; p.appendChild(b); });
+document.getElementById('itabs').onclick = (e) => { const id = e.target.dataset.p; if (!id) return; document.querySelectorAll('#itabs button').forEach((b) => b.setAttribute('aria-selected', b === e.target)); document.querySelectorAll('.pane').forEach((p) => p.classList.toggle('on', p.id === id)); };
+fetch('examples/research/DemoShop/dashboard.html', { method: 'HEAD' }).then((r) => { if (r.ok) { document.getElementById('demoframe').src = 'examples/research/DemoShop/dashboard.html'; document.getElementById('demobox').hidden = false; document.getElementById('demohow').hidden = true; } }).catch(() => {});
+</script>
+</body>
+</html>

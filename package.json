@@ -1,0 +1,49 @@
+{
+  "name": "webapplens",
+  "version": "0.1.0",
+  "description": "Claude Code skill + agents for researching web applications: safe crawling, screenshots, evidence-tagged documentation.",
+  "type": "module",
+  "license": "MIT",
+  "private": false,
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "node --test \"tests/**/*.test.mjs\"",
+    "test:unit": "node --test \"tests/unit/*.test.mjs\"",
+    "test:integration": "node --test \"tests/integration/*.test.mjs\"",
+    "doctor": "node skills/webapp-research/scripts/cli.mjs doctor",
+    "demo": "node scripts/run-demo.mjs",
+    "postinstall": "node -e \"console.log('Next: npx playwright install chromium')\"",
+    "viewer": "node skills/webapp-research/scripts/cli.mjs viewer",
+    "install-skill": "node scripts/install.mjs"
+  },
+  "dependencies": {
+    "playwright": "~1.58.2"
+  },
+  "keywords": [
+    "claude-code",
+    "skill",
+    "playwright",
+    "reverse-engineering",
+    "documentation",
+    "crawler"
+  ],
+  "bin": {
+    "webapplens": "bin/webapplens.mjs"
+  },
+  "files": [
+    "skills",
+    "scripts/install.mjs",
+    "bin",
+    "assets",
+    "docs",
+    "README.md",
+    "LICENSE",
+    "AGENTS.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/<your-username>/webapplens.git"
+  }
+}

@@ -1,0 +1,60 @@
+name: Platform support
+description: Report how WebAppLens works on an agent platform, or propose adapting it to a new one
+labels: ["platform"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        WebAppLens is platform-neutral: any agent that can read Markdown instructions and run shell commands should be able to use it. Tell us what you tried and what you saw. The canonical skill lives in `skills/webapp-research/`; the installer is `scripts/install.mjs`.
+  - type: input
+    id: platform
+    attributes:
+      label: Agent platform and version
+      placeholder: "e.g. OpenAI Codex CLI x.y, Claude Code x.y, another agent"
+    validations:
+      required: true
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What is this about?
+      options:
+        - Report: it works (or mostly works)
+        - Report: it does not work
+        - Proposal: add an installer target
+        - Proposal: adapt the role playbooks
+    validations:
+      required: true
+  - type: textarea
+    id: discovery
+    attributes:
+      label: How does the platform discover instructions or skills?
+      description: Directory names, file names, required metadata, user versus project scope.
+    validations:
+      required: true
+  - type: textarea
+    id: subagents
+    attributes:
+      label: Does it support subagents or roles?
+      description: How are they defined? Is the frontmatter (`name`, `description`, `tools`) compatible? Can a subagent spawn another?
+  - type: textarea
+    id: tried
+    attributes:
+      label: What did you try, and what happened?
+      description: Install command, `doctor` result, and a short crawl against the bundled fixture if possible.
+      render: shell
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options: [Windows, macOS, Linux, Other]
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      options:
+        - label: I tested only against the fixture or an application I am authorized to test.
+          required: true
+        - label: I removed credentials and personal data from this report.
+          required: true

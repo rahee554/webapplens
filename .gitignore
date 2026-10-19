@@ -1,0 +1,42 @@
+# Dependencies
+node_modules/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS / editor
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/
+*.swp
+
+# Environment files and secrets
+.env
+.env.*
+!.env.example
+.secrets/
+**/credentials.json
+!**/credentials.example.json
+*.local.json
+storage-state.json
+
+# Claude Code per-machine settings
+.claude/settings.local.json
+
+# Research output (real targets AND the demo/test runs): never committed.
+docs/references/*/
+# Generated demo/test artifacts - regenerate with `npm run demo`
+# (the two README images in assets/ are the only demo screenshots that are committed)
+examples/research/
+
+# Test / temp output
+*.tmp
+tmp/
+.tmp/
+test-results/
+playwright-report/
+coverage/
+.nyc_output/

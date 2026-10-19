@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability or conduct concern (private)
+    url: https://github.com/<your-username>/webapplens/security/advisories/new
+    about: Guard bypass, secret leakage, scope escape, prompt-injection gaps, or a Code of Conduct report. Please do not open a public issue.
+  - name: Questions and ideas (Discussions)
+    url: https://github.com/<your-username>/webapplens/discussions
+    about: Ask how to use WebAppLens, share compatibility notes, or float an idea before writing a feature request.

@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WebAppLens report</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%234f46e5'/%3E%3Cstop offset='1' stop-color='%2306b6d4'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='256' height='256' rx='58' fill='url(%23g)'/%3E%3Ccircle cx='114' cy='114' r='68' fill='none' stroke='%23fff' stroke-width='14'/%3E%3Cline x1='165' y1='165' x2='214' y2='214' stroke='%23fff' stroke-width='18' stroke-linecap='round'/%3E%3C/svg%3E">
+<style>
+:root{--bg:#f6f7fb;--card:#fff;--ink:#14162b;--mute:#6b6f86;--line:#e4e6f0;--brand:#4f46e5;--brand2:#06b6d4;--ok:#0f9d6a;--warn:#d98200;--bad:#d6334b;--info:#3b6fe0;--chip:#eef0fa;--shadow:0 1px 2px rgba(20,22,43,.06),0 8px 24px rgba(20,22,43,.06)}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#0e1020;--card:#171a31;--ink:#eceefb;--mute:#9a9fbd;--line:#2a2e4d;--chip:#21254a;--shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.35)}}
+:root[data-theme=dark]{--bg:#0e1020;--card:#171a31;--ink:#eceefb;--mute:#9a9fbd;--line:#2a2e4d;--chip:#21254a;--shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.35)}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 Inter,"Segoe UI",system-ui,-apple-system,sans-serif}
+a{color:var(--brand)}h1,h2,h3{line-height:1.2;margin:0}code{background:var(--chip);padding:1px 6px;border-radius:6px;font-size:.88em}
+header{background:linear-gradient(120deg,#4f46e5,#06b6d4);color:#fff;padding:28px 20px 70px}
+.wrap{max-width:1180px;margin:0 auto;padding:0 20px}header .wrap{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+.mark{width:54px;height:54px;flex:none}header h1{font-size:26px}header p{margin:2px 0 0;opacity:.9}
+.spacer{flex:1}button,.btn{font:inherit;cursor:pointer}.theme{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.4);color:#fff;border-radius:999px;padding:6px 14px}
+main{margin-top:-48px;padding-bottom:60px}
+.verdict{background:var(--card);border-radius:16px;box-shadow:var(--shadow);padding:18px 22px;border-left:6px solid var(--warn);display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap}
+.verdict.good{border-color:var(--ok)}.verdict.bad{border-color:var(--bad)}.verdict b{display:block;font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--mute)}
+.verdict p{margin:4px 0 0;max-width:80ch}.meta{color:var(--mute);font-size:13px;margin-left:auto;text-align:right}
+nav.tabs{display:flex;gap:6px;margin:22px 0 14px;overflow:auto;padding-bottom:4px}
+nav.tabs button{background:var(--card);border:1px solid var(--line);border-radius:999px;padding:7px 16px;color:var(--ink)}
+nav.tabs button[aria-selected=true]{background:var(--brand);color:#fff;border-color:var(--brand)}
+section.panel{display:none}section.panel.on{display:block}
+.grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(230px,1fr))}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;box-shadow:var(--shadow)}
+.card h3{font-size:12px;letter-spacing:.07em;text-transform:uppercase;color:var(--mute);font-weight:600}
+.big{font-size:32px;font-weight:800;margin:6px 0 2px;letter-spacing:-.02em}.sub{color:var(--mute);font-size:13px}
+.bar{height:8px;border-radius:99px;background:var(--chip);overflow:hidden;margin-top:10px;display:flex}.bar i{display:block;height:100%}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:12.5px;color:var(--mute);margin-top:8px}.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px}
+.def{font-size:12px;color:var(--mute);margin-top:8px;border-top:1px dashed var(--line);padding-top:8px}
+.s-explored{--c:var(--ok)}.s-partial{--c:var(--warn)}.s-blocked{--c:var(--info)}.s-failed{--c:var(--bad)}.s-discovered,.s-queued,.s-in_progress,.s-needs_verification{--c:var(--mute)}
+.pill{display:inline-block;padding:1px 10px;border-radius:99px;font-size:12px;font-weight:600;color:var(--c,var(--mute));background:color-mix(in srgb,var(--c,var(--mute)) 14%,transparent);border:1px solid color-mix(in srgb,var(--c,var(--mute)) 35%,transparent)}
+.tools{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}input[type=search],select{font:inherit;padding:8px 12px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink)}input[type=search]{min-width:240px}
+table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;font-size:14px}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}th{background:var(--chip);font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--mute)}tr:last-child td{border:0}
+.tablewrap{overflow:auto;border-radius:14px}
+.gallery{display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(250px,1fr))}
+.shot{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;cursor:zoom-in;box-shadow:var(--shadow)}
+.shot .img{height:170px;overflow:hidden;background:var(--chip)}.shot img{width:100%;display:block;object-fit:cover;object-position:top}.shot div.cap{padding:9px 12px;font-size:13px}.cap small{display:block;color:var(--mute)}
+.lb{position:fixed;inset:0;background:rgba(8,9,20,.86);display:none;align-items:center;justify-content:center;z-index:9;padding:24px}.lb.on{display:flex}.lb figure{margin:0;max-width:min(1200px,96vw);max-height:94vh;overflow:auto;background:var(--card);border-radius:14px}.lb img{display:block;width:100%}.lb figcaption{padding:10px 14px;font-size:13px}
+details{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 14px;margin-bottom:10px}summary{cursor:pointer;font-weight:600}
+.ev{display:grid;gap:8px}.ev .row{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 14px}.conf{font-size:12px;color:var(--mute)}
+ul.clean{margin:6px 0 0;padding-left:18px}.note{background:var(--chip);border-radius:12px;padding:12px 16px;font-size:14px}
+footer{color:var(--mute);font-size:13px;text-align:center;padding:30px 0}
+.empty{color:var(--mute);padding:20px;text-align:center}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+  <svg class="mark" viewBox="0 0 256 256" aria-hidden="true"><rect width="256" height="256" rx="58" fill="rgba(255,255,255,.2)"/><circle cx="114" cy="114" r="68" fill="rgba(255,255,255,.14)" stroke="#fff" stroke-width="14"/><line x1="165" y1="165" x2="214" y2="214" stroke="#fff" stroke-width="18" stroke-linecap="round"/><rect x="76" y="82" width="76" height="64" rx="9" fill="none" stroke="#fff" stroke-width="6"/><line x1="76" y1="100" x2="152" y2="100" stroke="#fff" stroke-width="6"/><line x1="102" y1="114" x2="138" y2="114" stroke="#fff" stroke-width="6" stroke-linecap="round"/><line x1="102" y1="127" x2="126" y2="127" stroke="#fff" stroke-width="6" stroke-linecap="round" opacity=".8"/></svg>
+  <div><h1 id="app"></h1><p id="subtitle"></p></div><span class="spacer"></span>
+  <button class="theme" id="theme" aria-label="Toggle theme">Theme</button>
+</div></header>
+<main class="wrap">
+  <div class="verdict" id="verdict"></div>
+  <nav class="tabs" role="tablist" id="tabs"></nav>
+
+  <section class="panel" id="p-overview"></section>
+  <section class="panel" id="p-routes"></section>
+  <section class="panel" id="p-shots"></section>
+  <section class="panel" id="p-forms"></section>
+  <section class="panel" id="p-evidence"></section>
+  <section class="panel" id="p-limits"></section>
+</main>
+<div class="lb" id="lb" role="dialog" aria-modal="true"><figure><img id="lbimg" alt=""><figcaption id="lbcap"></figcaption></figure></div>
+<footer>Generated by <b>WebAppLens</b> from <code>research-manifest.json</code> and the project's data files. Everything shown is read from local files; nothing is fetched.</footer>
+
+<script>
+const D = /*__DATA__*/null;
+const $ = (s, r = document) => r.querySelector(s);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const pct = (v) => (v === null || v === undefined ? 'n/a' : v + '%');
+const A = D.audit;
+
+$('#app').textContent = D.manifest.application;
+$('#subtitle').textContent = `${D.manifest.base_url} · mode ${D.manifest.mode} · ${D.manifest.scope}`;
+document.title = `${D.manifest.application} - WebAppLens report`;
+
+const incomplete = /^INCOMPLETE/.test(A.verdict);
+$('#verdict').className = 'verdict ' + (incomplete ? 'bad' : A.issues.length ? '' : 'good');
+$('#verdict').innerHTML = `<div><b>Verdict</b><p>${esc(A.verdict)}</p></div><div class="meta">created ${esc(D.manifest.created_at.slice(0, 10))}<br>tool ${esc(D.manifest.tool_version)}<br>stop reason: ${esc(A.limits.stop_reason || 'n/a')}</div>`;
+
+const TABS = [['overview', 'Overview'], ['routes', `Routes (${D.routes.length})`], ['shots', `Screenshots (${D.shots.length})`], ['forms', `Forms (${D.forms.length})`], ['evidence', `Evidence (${D.observations.length})`], ['limits', 'Limits & open items']];
+$('#tabs').innerHTML = TABS.map(([id, t]) => `<button role="tab" data-t="${id}" aria-selected="false">${t}</button>`).join('');
+function show(id) {
+  document.querySelectorAll('section.panel').forEach((s) => s.classList.toggle('on', s.id === 'p-' + id));
+  document.querySelectorAll('#tabs button').forEach((b) => b.setAttribute('aria-selected', b.dataset.t === id));
+  history.replaceState(null, '', '#' + id);
+}
+$('#tabs').onclick = (e) => e.target.dataset.t && show(e.target.dataset.t);
+
+// ---- overview
+const R = A.routes;
+const seg = (parts) => `<div class="bar">${parts.map(([n, c]) => (n ? `<i style="width:${(n / Math.max(1, parts.reduce((a, p) => a + p[0], 0))) * 100}%;background:${c}"></i>` : '')).join('')}</div>`;
+const cards = [
+  ['Routes', `${R.explored}/${R.total}`, `route coverage ${pct(R.route_coverage_pct)} · accessible ${pct(R.accessible_coverage_pct)}`,
+    seg([[R.explored, 'var(--ok)'], [R.partial, 'var(--warn)'], [R.blocked, 'var(--info)'], [R.failed, 'var(--bad)'], [R.remaining, 'var(--mute)']]) +
+    `<div class="legend"><span><i class="dot" style="background:var(--ok)"></i>${R.explored} explored</span><span><i class="dot" style="background:var(--warn)"></i>${R.partial} partial</span><span><i class="dot" style="background:var(--info)"></i>${R.blocked} blocked</span><span><i class="dot" style="background:var(--bad)"></i>${R.failed} failed</span><span><i class="dot" style="background:var(--mute)"></i>${R.remaining} remaining</span></div>`, D.definitions.route_coverage],
+  ['Screenshots', pct(A.screenshots.coverage_pct), `${A.screenshots.covered}/${A.screenshots.required} explored routes · ${A.screenshots.total_files} files`, '', D.definitions.screenshot_coverage],
+  ['Documentation', pct(A.documentation.coverage_pct), `${A.documentation.explored_routes_documented} explored routes documented`, '', D.definitions.documentation_coverage],
+  ['Forms', A.forms.inventoried, `${A.forms.fields} fields read · ${A.forms.submit_tested} submit-tested`, '', D.definitions.forms],
+  ['Controls', A.controls.catalogued, `${A.controls.exercised} exercised (clicked)`,
+    seg([[A.controls.by_category.A, 'var(--ok)'], [A.controls.by_category.B, 'var(--warn)'], [A.controls.by_category.C, 'var(--bad)']]) +
+    `<div class="legend"><span><i class="dot" style="background:var(--ok)"></i>A safe ${A.controls.by_category.A}</span><span><i class="dot" style="background:var(--warn)"></i>B controlled ${A.controls.by_category.B}</span><span><i class="dot" style="background:var(--bad)"></i>C consequential ${A.controls.by_category.C}</span></div>`, D.definitions.controls],
+  ['Workflows', A.workflows.documented, 'documents in docs/workflows/', '', D.definitions.workflows],
+  ['Technical docs', `${A.technical.docs_complete}/${A.technical.docs_total}`, `${A.unresolved_todos} unresolved TODO(agent) markers`, '', D.definitions.technical_docs],
+  ['Evidence', A.technical.observations, Object.entries(A.technical.by_evidence_type).map(([k, v]) => `${k} ${v}`).join(' · ') || 'none recorded', '', 'Every finding carries an evidence type and confidence.'],
+];
+$('#p-overview').innerHTML = `<div class="grid">${cards.map(([t, big, sub, extra, def]) => `<div class="card"><h3>${t}</h3><div class="big">${big}</div><div class="sub">${esc(sub)}</div>${extra}<div class="def">${esc(def)}</div></div>`).join('')}</div>
+<p class="note" style="margin-top:16px"><b>How to read this.</b> There is deliberately no single "percent complete": covering every route says nothing about whether every control or workflow was tested. Blocked and failed routes stay visible so access limits never disappear.</p>
+${A.issues.length ? `<h3 style="margin:22px 0 8px">Open issues</h3><ul class="clean">${A.issues.map((i) => `<li>${esc(i)}</li>`).join('')}</ul>` : ''}
+<h3 style="margin:22px 0 8px">Documentation</h3><div class="grid">${D.docs.map((d) => `<a class="card" href="${esc(d.path)}"><h3>${esc(d.kind)}</h3><b>${esc(d.title)}</b><div class="sub">${esc(d.path)}</div></a>`).join('') || '<div class="empty">No docs generated yet. Run <code>report</code>.</div>'}</div>`;
+
+// ---- routes
+const statuses = [...new Set(D.routes.map((r) => r.status))];
+const modules = [...new Set(D.routes.map((r) => r.module))].sort();
+$('#p-routes').innerHTML = `<div class="tools"><input type="search" id="rq" placeholder="Search routes, titles…"><select id="rs"><option value="">All statuses</option>${statuses.map((s) => `<option>${s}</option>`).join('')}</select><select id="rm"><option value="">All modules</option>${modules.map((s) => `<option>${esc(s)}</option>`).join('')}</select></div><div class="tablewrap"><table><thead><tr><th>ID</th><th>Route</th><th>Title</th><th>Module</th><th>Status</th><th>Access</th><th>Forms</th><th>Controls</th><th>Shot</th></tr></thead><tbody id="rows"></tbody></table></div>`;
+function drawRoutes() {
+  const q = $('#rq').value.toLowerCase(), s = $('#rs').value, m = $('#rm').value;
+  const rows = D.routes.filter((r) => (!s || r.status === s) && (!m || r.module === m) && (!q || (r.template + ' ' + (r.title || '') + ' ' + r.id).toLowerCase().includes(q)));
+  $('#rows').innerHTML = rows.map((r) => `<tr><td>${r.id}</td><td><code>${esc(r.template)}</code>${r.examples > 1 ? `<div class="sub">${r.examples} examples${r.skipped ? ` (+${r.skipped} sampled out)` : ''}</div>` : ''}</td><td>${esc(r.title || '—')}</td><td>${esc(r.module)}${r.submodule ? '/' + esc(r.submodule) : ''}</td><td><span class="pill s-${r.status}">${r.status}</span></td><td>${esc(r.access)}${r.failure ? `<div class="sub">${esc(r.failure)}</div>` : ''}</td><td>${r.forms}</td><td>${r.controls}</td><td>${r.shot ? `<a href="#" data-shot="${esc(r.shot)}" data-cap="${esc(r.template)}">view</a>` : '—'}</td></tr>`).join('') || '<tr><td colspan="9" class="empty">No routes match.</td></tr>';
+}
+['rq', 'rs', 'rm'].forEach((id) => ($('#' + id).oninput = drawRoutes));
+drawRoutes();
+
+// ---- screenshots
+const kinds = ['all', 'modules', 'interactions'];
+$('#p-shots').innerHTML = `<div class="tools"><select id="sk"><option value="">All kinds</option><option value="all">Primary page states</option><option value="modules">Tabs &amp; sections</option><option value="interactions">Dialogs &amp; responsive</option></select></div><div class="gallery" id="gal"></div>`;
+function drawShots() {
+  const k = $('#sk').value;
+  $('#gal').innerHTML = D.shots.filter((s) => !k || s.file.split('/')[1] === k).map((s) => `<div class="shot" data-shot="${esc(s.file)}" data-cap="${esc(s.route + ' · ' + s.ui_state)}"><div class="img"><img loading="lazy" src="${esc(s.file)}" alt="${esc(s.route)}"></div><div class="cap"><b>${esc(s.route)}</b><small>${esc(s.ui_state)} · ${s.viewport ? s.viewport.width + '×' + s.viewport.height : ''} · ${esc(s.captured_at.slice(0, 10))}</small></div></div>`).join('') || '<div class="empty">No screenshots.</div>';
+}
+$('#sk').oninput = drawShots; drawShots();
+const lb = $('#lb');
+document.addEventListener('click', (e) => {
+  const t = e.target.closest('[data-shot]');
+  if (t) { e.preventDefault(); $('#lbimg').src = t.dataset.shot; $('#lbcap').textContent = t.dataset.cap + ' — ' + t.dataset.shot; lb.classList.add('on'); }
+  else if (e.target === lb || e.target.closest('#lb')) lb.classList.remove('on');
+});
+document.addEventListener('keydown', (e) => e.key === 'Escape' && lb.classList.remove('on'));
+
+// ---- forms
+$('#p-forms').innerHTML = D.forms.length ? D.forms.map((f) => `<details><summary>${esc(f.label)} <span class="sub">· ${esc(f.route)} · ${esc(f.ui_state)} · ${f.fields.length} fields${f.submit_tested ? '' : ' · submission not tested'}</span></summary><div class="tablewrap"><table><thead><tr><th>Field</th><th>Type</th><th>Required</th><th>Default</th><th>Options / limits</th></tr></thead><tbody>${f.fields.map((x) => `<tr><td>${esc(x.label || x.name)}</td><td>${esc(x.type)}</td><td>${x.required ? 'yes' : 'no'}</td><td>${x.default === null || x.default === undefined ? '' : esc(x.default)}</td><td>${esc([(x.options || []).join(', '), x.maxlength && 'max ' + x.maxlength, x.pattern && 'pattern ' + x.pattern].filter(Boolean).join('; '))}</td></tr>`).join('')}</tbody></table></div><p class="sub">Submit buttons: ${esc(f.submit.join(', ') || 'none')} · fields were read from the page; nothing was submitted.</p></details>`).join('') : '<div class="empty">No forms inventoried.</div>';
+
+// ---- evidence
+const order = ['observed', 'verified_interaction', 'official_docs', 'public_source', 'inferred', 'hypothesis'];
+$('#p-evidence').innerHTML = `<div class="ev">${[...D.observations].sort((a, b) => order.indexOf(a.type) - order.indexOf(b.type)).map((o) => `<div class="row"><span class="pill ${/^(observed|verified|official|public)/.test(o.type) ? 's-explored' : o.type === 'inferred' ? 's-partial' : 's-failed'}">${esc(o.type)}</span> <span class="conf">confidence ${esc(o.confidence)}${o.route_id ? ' · ' + esc(o.route_id) : ''}</span><div>${esc(o.claim)}</div>${o.notes ? `<div class="sub">${esc(o.notes)}</div>` : ''}</div>`).join('') || '<div class="empty">No evidence recorded.</div>'}</div>`;
+
+// ---- limits
+const L = A.limits;
+$('#p-limits').innerHTML = `<div class="grid">
+<div class="card"><h3>Safety guard</h3><div class="big">${D.blocked.length}</div><div class="sub">non-GET requests blocked by the mutation guard</div></div>
+<div class="card"><h3>Skipped on purpose</h3><ul class="clean">${Object.entries(L.skipped || {}).map(([k, v]) => `<li>${esc(k)}: ${v}</li>`).join('') || '<li>nothing</li>'}</ul></div>
+<div class="card"><h3>External origins (not crawled)</h3><ul class="clean">${(L.external_origins || []).map((o) => `<li>${esc(o)}</li>`).join('') || '<li>none</li>'}</ul></div>
+<div class="card"><h3>Run limits</h3><div class="sub">${esc(JSON.stringify(L.config))}<br>queue remaining: ${L.queue_remaining}</div></div></div>
+<h3 style="margin:22px 0 8px">Links skipped as consequential</h3><ul class="clean">${D.skippedLinks.map((l) => `<li>"${esc(l.label)}" — <code>${esc(l.url)}</code></li>`).join('') || '<li>none</li>'}</ul>
+<h3 style="margin:22px 0 8px">Navigation targets not explored</h3><ul class="clean">${A.unexplored_nav.map((n) => `<li><code>${esc(n)}</code></li>`).join('') || '<li>none</li>'}</ul>
+<h3 style="margin:22px 0 8px">Documentation still to write</h3><ul class="clean">${D.todos.map((t) => `<li><code>${esc(t.file)}</code> — ${esc(t.text)}</li>`).join('') || '<li>none</li>'}</ul>
+<p class="note" style="margin-top:16px">Screenshots are not pixel-redacted. Only the one account that was used was observed; other roles are unverified.</p>`;
+
+$('#theme').onclick = () => { const r = document.documentElement; const dark = (r.dataset.theme || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')) === 'dark'; r.dataset.theme = dark ? 'light' : 'dark'; };
+const fromHash = () => { const id = (location.hash || '#overview').slice(1).replace(/[^a-z]/g, ''); show(TABS.some((t) => t[0] === id) ? id : 'overview'); };
+addEventListener('hashchange', fromHash);
+fromHash();
+</script>
+</body>
+</html>

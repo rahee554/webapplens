@@ -1,0 +1,11 @@
+# Replace <your-username> with the maintainer's GitHub handle (or a team).
+* @<your-username>
+
+# Safety surface: always needs maintainer review (see CONTRIBUTING.md, "Add a safety rule").
+/skills/webapp-research/scripts/lib/safety.mjs   @<your-username>
+/skills/webapp-research/scripts/lib/scope.mjs    @<your-username>
+/skills/webapp-research/scripts/lib/browser.mjs  @<your-username>
+/skills/webapp-research/scripts/lib/redact.mjs   @<your-username>
+/skills/webapp-research/scripts/lib/credentials.mjs @<your-username>
+/skills/webapp-research/references/safety.md     @<your-username>
+/SECURITY.md                                     @<your-username>
